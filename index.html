@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moodleコース レコメンドアプリ</title>
+    
+    <!-- 外部ライブラリの読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans JP"', 'sans-serif'],
+                        mono: ['"Share Tech Mono"', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        },
+                        brand: {
+                            cyan: '#06b6d4',
+                            purple: '#8b5cf6',
+                            orange: '#f97316',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0f172a; /* Slate 900 */
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #F3F4F6;
+        }
+
+        /* ガラスモーフィズムカード */
+        .st-card {
+            background: rgba(30, 41, 59, 0.7); /* Slate 800 with opacity */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        /* 
+         * 機能変更禁止のため、ホバーエフェクトなどの装飾のみ追加
+         */
+
+        /* カスタムスライダー */
+        .slider-container {
+            position: relative;
+            padding: 10px 0;
+        }
+
+        input[type=range].styled-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: rgba(51, 65, 85, 0.5);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type=range].styled-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 4px solid #06b6d4; /* Cyan */
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+            cursor: grab;
+            transition: transform 0.1s, box-shadow 0.2s;
+            margin-top: -8px; /* Correct thumb alignment */
+        }
+        
+        /* 縦軸用スライダー（色変更） */
+        #slider-y.styled-slider::-webkit-slider-thumb {
+            border-color: #8b5cf6; /* Purple */
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+
+        input[type=range].styled-slider::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.2);
+        }
+
+        /* ツールチップ */
+        .slider-tooltip {
+            position: absolute;
+            top: -20px;
+            transform: translateX(-50%);
+            background-color: #06b6d4;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0; 
+            transition: opacity 0.2s;
+        }
+        
+        .slider-container:hover .slider-tooltip {
+            opacity: 1;
+        }
+
+        #val-y-tooltip {
+            background-color: #8b5cf6;
+        }
+
+        /* スクロールバー */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5); 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #475569;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #64748b;
+        }
+
+        /* ドラッグ&ドロップ */
+        #drop-zone {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            border: 4px dashed #06b6d4;
+            transition: opacity 0.3s;
+        }
+        #drop-zone.active {
+            display: flex;
+        }
+
+        /* チャットボット */
+        #chat-container p { margin-bottom: 0.5em; }
+        #chat-container p:last-child { margin-bottom: 0; }
+        #chat-container ul { list-style-type: disc; margin-left: 1.5em; margin-top: 0.5em; }
+        #chat-container strong { color: #67e8f9; }
+
+        /* タイマーフォント */
+        .font-mono-clock {
+            font-family: 'Share Tech Mono', monospace;
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        /* アニメーション */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        /* フェルミ推定スライダー用 */
+        .fermi-slider::-webkit-slider-thumb {
+            border-color: #ec4899 !important; /* Pink-500 */
+            box-shadow: 0 0 10px rgba(236, 72, 153, 0.5) !important;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen text-gray-100 selection:bg-cyan-500 selection:text-white"
+      ondragover="event.preventDefault(); document.getElementById('drop-zone').classList.add('active');" 
+      ondragleave="document.getElementById('drop-zone').classList.remove('active');" 
+      ondrop="handleDrop(event)">
+
+    <!-- ドラッグ＆ドロップゾーン -->
+    <div id="drop-zone">
+        <div class="text-center p-10 border-2 border-dashed border-gray-500 rounded-3xl">
+            <p class="text-6xl mb-4 animate-bounce">📂</p>
+            <p class="text-2xl font-bold text-white">ここにCSVファイルをドロップ</p>
+            <p class="text-gray-400 mt-2">学習データを更新します</p>
+        </div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div class="max-w-[1440px] w-full mx-auto px-4 py-8 space-y-6">
+        
+        <!-- ヘッダーエリア -->
+        <header class="flex flex-col md:flex-row justify-between items-center bg-slate-800/50 backdrop-blur-md rounded-2xl p-6 border border-slate-700/50 shadow-lg animate-fade-in">
+            <div class="w-full md:w-2/3">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-3xl">🎓</span>
+                    <h1 class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                        Moodleコース レコメンドアプリ
+                    </h1>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-4 pl-12">『タスク（課題）占い』</h2>
+                
+                <!-- 今日の名言 -->
+                <div class="mt-4 p-4 bg-slate-900/60 rounded-xl border-l-4 border-yellow-500 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-yellow-500/10 rounded-full blur-xl group-hover:bg-yellow-500/20 transition-all"></div>
+                    <p class="text-xs font-bold text-yellow-500 mb-1 uppercase tracking-wider">Today's Quote</p>
+                    <blockquote class="italic text-gray-200 text-lg font-serif z-10 relative">
+                        "<span id="quote-text">読み込み中...</span>"
+                    </blockquote>
+                    <p class="text-right text-sm text-gray-400 mt-2 font-medium">— <span id="quote-author">...</span></p>
+                </div>
+            </div>
+
+            <!-- プロフィール -->
+            <div class="flex items-center mt-6 md:mt-0 bg-slate-900/80 p-3 pr-6 rounded-full border border-slate-700 shadow-xl ml-4 hover:border-cyan-500/50 transition-colors cursor-default">
+                <img src="./teraoka.png" onerror="this.src='https://ui-avatars.com/api/?name=Teraoka&background=0f172a&color=fff'" alt="Profile" class="w-14 h-14 rounded-full object-cover border-2 border-cyan-500/30">
+                <div class="text-right ml-4">
+                    <p class="font-bold text-sm text-cyan-400">テラオカ電子の自由探究ゼミ</p>
+                    <p class="text-xs text-gray-400 max-w-[200px] leading-tight mt-1">自分が価値を置くものに向かって<br>こつこつ努力する姿ほど<br>素晴らしいものはない</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- メイングリッド -->
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 animate-fade-in" style="animation-delay: 0.1s;">
+            
+            <!-- 左カラム：診断チャート -->
+            <div class="xl:col-span-7 flex flex-col gap-6">
+                <!-- スライダーコントロール -->
+                <div class="st-card border-t-4 border-t-cyan-500">
+                    <h3 class="text-xl font-bold text-gray-100 mb-6 flex items-center">
+                        <span class="bg-cyan-500/20 text-cyan-400 p-2 rounded-lg mr-3">🔍</span>
+                        あなたの興味・関心を入力
+                    </h3>
+                    
+                    <!-- X軸 -->
+                    <div class="mb-8 slider-container group">
+                        <div class="flex justify-between items-end mb-2 px-1">
+                            <label class="text-sm font-bold text-gray-300 group-hover:text-cyan-400 transition-colors">Q1. 興味がある分野は？</label>
+                            <span class="text-xs text-cyan-500 font-mono bg-cyan-950 px-2 py-1 rounded">X-Axis</span>
+                        </div>
+                        <div class="relative h-8 flex items-center">
+                            <div id="val-x-tooltip" class="slider-tooltip font-mono">0.00</div>
+                            <input type="range" id="slider-x" min="-5.0" max="3.0" step="0.1" value="0" class="styled-slider w-full" dir="rtl">
+                        </div>
+                        <div class="flex justify-between text-xs font-bold text-gray-500 mt-1 uppercase tracking-wider">
+                            <span class="group-hover:text-gray-300 transition-colors">📐 数学・データ分析</span>
+                            <span class="group-hover:text-gray-300 transition-colors">💻 Web・アプリ開発</span>
+                        </div>
+                    </div>
+
+                    <!-- Y軸 -->
+                    <div class="slider-container group">
+                        <div class="flex justify-between items-end mb-2 px-1">
+                            <label class="text-sm font-bold text-gray-300 group-hover:text-purple-400 transition-colors">Q2. 学習スタイルの好みは？</label>
+                            <span class="text-xs text-purple-500 font-mono bg-purple-950 px-2 py-1 rounded">Y-Axis</span>
+                        </div>
+                        <div class="relative h-8 flex items-center">
+                             <div id="val-y-tooltip" class="slider-tooltip font-mono">0.00</div>
+                            <input type="range" id="slider-y" min="-2.0" max="1.5" step="0.1" value="0" class="styled-slider w-full" dir="rtl">
+                        </div>
+                        <div class="flex justify-between text-xs font-bold text-gray-500 mt-1 uppercase tracking-wider">
+                            <span class="group-hover:text-gray-300 transition-colors">📚 教科書・基礎</span>
+                            <span class="group-hover:text-gray-300 transition-colors">🤖 生成AI・実践</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- チャート表示 -->
+                <div class="st-card flex-grow flex flex-col relative overflow-hidden min-h-[500px]">
+                    <div class="absolute inset-0 bg-gradient-to-b from-slate-800/50 to-slate-900/50 z-0"></div>
+                    <!-- グリッド装飾 -->
+                    <div class="absolute inset-0" style="background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none;"></div>
+
+                    <div class="w-full h-[400px] relative z-10 flex-grow">
+                        <canvas id="scatterChart"></canvas>
+                    </div>
+                    
+                    <!-- 診断結果表示 -->
+                    <div class="mt-4 p-4 bg-slate-950/80 border border-slate-700 rounded-xl relative z-10 text-center shadow-inner">
+                        <div id="cluster-comment">
+                            <p class="text-gray-500 animate-pulse">分析中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右カラム：おすすめリスト -->
+            <div class="xl:col-span-5">
+                <div class="st-card h-full flex flex-col border-t-4 border-t-green-500 max-h-[850px]">
+                    <div class="mb-4 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-100 flex items-center">
+                                <span class="bg-green-500/20 text-green-400 p-2 rounded-lg mr-3">📋</span>
+                                おすすめコース
+                            </h3>
+                            <p class="text-xs font-bold text-gray-400 mt-1 ml-11">近い順に表示</p>
+                        </div>
+                        <span class="text-xs bg-slate-700 text-white px-2 py-1 rounded-full border border-slate-600">Personalized</span>
+                    </div>
+                    
+                    <div class="overflow-y-auto custom-scrollbar flex-grow pr-1 -mr-1">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-900/90 text-xs uppercase text-gray-400 sticky top-0 z-10 shadow-md">
+                                <tr>
+                                    <th class="px-4 py-3 font-bold rounded-l-lg">No.</th>
+                                    <th class="px-4 py-3 font-bold">コース概要</th>
+                                    <th class="px-4 py-3 font-bold text-center rounded-r-lg">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recommendation-table" class="divide-y divide-slate-700/50 text-sm">
+                                <!-- JSで注入 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 顔認識セクション -->
+        <div class="st-card bg-gradient-to-r from-slate-800 to-slate-900 border-l-4 border-l-orange-500 flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in" style="animation-delay: 0.2s;">
+            <div class="flex items-center gap-4">
+                <div class="bg-orange-500/20 p-3 rounded-full">
+                    <span class="text-3xl">😊</span>
+                </div>
+                <div>
+                    <p class="text-lg font-bold text-orange-400">Smile Check!</p>
+                    <p class="text-sm text-gray-300">笑顔がいいね！と言われたい：コースに取り組む前に「顔体操」をしてリラックスしましょう！！！</p>
+                </div>
+            </div>
+            <button id="emotion-btn" class="whitespace-nowrap bg-slate-700 hover:bg-orange-500 hover:text-white text-gray-200 px-6 py-2 rounded-lg font-bold transition-all duration-300 shadow-lg border border-slate-600 hover:border-orange-400 flex items-center gap-2">
+                <span>📸</span> カメラを起動
+            </button>
+        </div>
+
+        <!-- 2カラム：チャット & 学習記録 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in" style="animation-delay: 0.3s;">
+            
+            <!-- チャットボット (WebLLM) -->
+            <div class="st-card flex flex-col h-[500px] border-t-4 border-t-blue-600 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2 z-10">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-blue-600/20 p-2 rounded-lg text-2xl">🤖</div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white">学習応援メンター 大吉AI</h3>
+                            <p class="text-[10px] text-blue-300 uppercase tracking-widest">勉強の悩みを相談しよう！！！  Powered by Llama-3.2</p>
+                        </div>
+                    </div>
+                    <button id="reset-chat-btn" class="text-xs bg-slate-800 hover:bg-red-900/50 text-red-300 hover:text-red-200 px-3 py-1 rounded border border-slate-600 hover:border-red-700 transition-colors">
+                        Reset
+                    </button>
+                </div>
+
+                <!-- ローディング -->
+                <div id="llm-status" class="hidden mb-2 px-4 py-3 bg-slate-900/80 rounded-lg border border-blue-900/50 z-10">
+                    <div class="flex justify-between text-xs text-blue-300 mb-1">
+                        <span class="font-bold">Model Initializing...</span>
+                        <span id="llm-status-text">準備中...</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                        <div id="llm-progress-bar" class="bg-blue-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div id="chat-container" class="flex-grow bg-slate-950/50 rounded-xl p-4 overflow-y-auto mb-4 custom-scrollbar border border-slate-700/50 z-10">
+                    <!-- チャット履歴 -->
+                </div>
+
+                <div class="flex gap-2 z-10">
+                    <input type="text" id="chat-input" class="flex-grow bg-slate-800 text-gray-100 border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500 transition-all" placeholder="プログラミングが難しい...">
+                    <button id="send-chat-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-blue-500/25">送信</button>
+                </div>
+            </div>
+
+            <!-- 学習記録 (Three Good Things) -->
+            <div class="st-card flex flex-col h-[500px] border-t-4 border-t-yellow-500">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-yellow-100 flex items-center">
+                        <span class="bg-yellow-500/20 text-yellow-400 p-2 rounded-lg mr-3 text-xl">📝</span>
+                        Three Good Things: 今日の３行学習日記
+                    </h3>
+                    <span class="text-xs text-gray-400 bg-slate-800 px-2 py-1 rounded">Daily Log</span>
+                </div>
+                
+                <!-- 修正点1: 親コンテナの h-full を flex-grow と min-h-0 に変更してスクロール問題を解消 -->
+                <div class="flex flex-col gap-4 flex-grow min-h-0">
+                    <!-- 入力エリア -->
+                    <div class="space-y-2">
+                        <p class="text-xs text-gray-400 mb-1">今日学んだことを3つ記録して、成長を可視化しよう。</p>
+                        <input type="text" id="record-line-1" class="w-full bg-slate-800 text-gray-100 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:border-yellow-500 focus:outline-none focus:bg-slate-900 transition-colors" placeholder="1. 学んだこと・気づき・次の行動...">
+                        <input type="text" id="record-line-2" class="w-full bg-slate-800 text-gray-100 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:border-yellow-500 focus:outline-none focus:bg-slate-900 transition-colors" placeholder="2. 学んだこと・気づき・次の行動...">
+                        <input type="text" id="record-line-3" class="w-full bg-slate-800 text-gray-100 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:border-yellow-500 focus:outline-none focus:bg-slate-900 transition-colors" placeholder="3. 学んだこと・気づき・次の行動...">
+                        <button id="save-record-btn" class="w-full mt-2 bg-yellow-600 hover:bg-yellow-500 text-white py-2 rounded-lg font-bold transition-all shadow-md flex justify-center items-center gap-2">
+                            <span>💾</span> テキストファイルで保存
+                        </button>
+                    </div>
+
+                    <!-- 履歴 -->
+                    <div class="flex-grow bg-slate-900/50 rounded-xl border border-slate-700/50 p-3 overflow-y-auto custom-scrollbar">
+                        <h4 class="text-xs font-bold text-gray-400 mb-2 uppercase border-b border-slate-700 pb-1">History</h4>
+                        <div id="record-history-list" class="flex flex-col gap-2 text-sm">
+                            <p class="text-gray-500 text-center py-4">履歴はありません</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 集中タイマー -->
+        <div class="st-card bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 animate-fade-in" style="animation-delay: 0.4s;">
+            <!-- 修正点2: タイマーにコメントを追加 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-bold text-gray-100 flex items-center mb-2">
+                    <span class="bg-indigo-500/20 text-indigo-400 p-2 rounded-lg mr-3 text-xl">⏳</span>
+                    Focus Timer
+                </h3>
+                <p class="text-sm text-gray-400 ml-12">勉強時間を管理しよう！！！</p>
+            </div>
+            
+            <div class="flex flex-col md:flex-row items-center justify-center gap-10">
+                <!-- タイマー表示 -->
+                <div class="relative group">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                    <div class="relative w-72 h-36 bg-slate-950 rounded-xl border border-slate-700 flex items-center justify-center shadow-2xl">
+                        <span id="timer-display" class="font-mono-clock text-7xl text-cyan-400 font-bold tracking-widest drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">25:00</span>
+                    </div>
+                </div>
+
+                <!-- コントロール -->
+                <div class="flex flex-col gap-4 w-full md:w-auto">
+                    <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
+                        <button onclick="setTimer(5)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">5 min</button>
+                        <button onclick="setTimer(10)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">10 min</button>
+                        <button onclick="setTimer(15)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">15 min</button>
+                        <button onclick="setTimer(30)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">30 min</button>
+                        <button onclick="setTimer(45)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">45 min</button>
+                        <button onclick="setTimer(60)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">60 min</button>
+                    </div>
+                    <div class="flex gap-4">
+                        <button id="timer-start-btn" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-cyan-500/20 transition-all transform active:scale-95">START</button>
+                        <button id="timer-reset-btn" class="flex-1 bg-slate-700 hover:bg-red-900/80 text-white font-bold py-3 rounded-lg border border-slate-600 hover:border-red-500 transition-all">RESET</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- フェルミ推定：恋愛方程式 -->
+        <div class="st-card border-t-4 border-t-pink-500 animate-fade-in" style="animation-delay: 0.5s;">
+            <div class="mb-6">
+                <h3 class="text-xl font-bold text-pink-400 flex items-center mb-2">
+                    <span class="bg-pink-500/20 text-pink-400 p-2 rounded-lg mr-3 text-xl">💖</span>
+                    フェルミ推定：The Mathematics of Love
+                </h3>
+                <div class="ml-12 text-sm text-gray-300 space-y-2">
+                    <p>イギリスの数学者ピーター・バックスは、2009年の論文 "Why I Don't Have a Girlfriend?" で、ドレイクの方程式（銀河系に知的生命体が存在する確率を計算する式）を応用し、自分に彼女ができる確率を算出しました。</p>
+                    <p class="text-xs text-gray-500">※ 気分転換に、この理論を使って「理想の相手に出会える確率」をフェルミ推定してみましょう。</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 入力フォーム -->
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-400 mb-1">1. 地域の人口 (人)</label>
+                        <input type="number" id="fermi-pop" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-pink-500 outline-none" value="300000">
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="slider-container">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span>2. 理想とする年齢層の割合 (%)</span>
+                                <span id="val-fermi-age" class="text-pink-400 font-bold">20%</span>
+                            </div>
+                            <input type="range" id="fermi-age" min="1" max="100" value="20" class="styled-slider fermi-slider w-full">
+                        </div>
+
+                        <div class="slider-container">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span>3. 対象となる性別の割合 (%)</span>
+                                <span id="val-fermi-sex" class="text-pink-400 font-bold">50%</span>
+                            </div>
+                            <input type="range" id="fermi-sex" min="1" max="100" value="50" class="styled-slider fermi-slider w-full">
+                        </div>
+
+                        <div class="slider-container">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span>4. 学歴・知性が釣り合う割合 (%)</span>
+                                <span id="val-fermi-edu" class="text-pink-400 font-bold">20%</span>
+                            </div>
+                            <input type="range" id="fermi-edu" min="1" max="100" value="20" class="styled-slider fermi-slider w-full">
+                        </div>
+
+                        <div class="slider-container">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span>5. 性格が合う割合 (%)</span>
+                                <span id="val-fermi-charm" class="text-pink-400 font-bold">10%</span>
+                            </div>
+                            <input type="range" id="fermi-charm" min="1" max="100" value="10" class="styled-slider fermi-slider w-full">
+                        </div>
+
+                        <div class="slider-container">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span>6. 外見が許容範囲の割合 (%)</span>
+                                <span id="val-fermi-phys" class="text-pink-400 font-bold">10%</span>
+                            </div>
+                            <input type="range" id="fermi-phys" min="1" max="100" value="10" class="styled-slider fermi-slider w-full">
+                        </div>
+
+                        <div class="slider-container">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span>7. 実際に出会える確率 (%)</span>
+                                <span id="val-fermi-meet" class="text-pink-400 font-bold">5%</span>
+                            </div>
+                            <input type="range" id="fermi-meet" min="1" max="100" value="5" class="styled-slider fermi-slider w-full">
+                        </div>
+                    </div>
+
+                    <button id="fermi-calc-btn" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-pink-500/30 transition-all transform active:scale-95">
+                        判定！
+                    </button>
+                </div>
+
+                <!-- 結果表示 -->
+                <div class="flex flex-col h-full bg-slate-900/50 rounded-xl border border-slate-700 p-4">
+                    <div class="text-center mb-6 py-4 border-b border-slate-700/50">
+                        <p class="text-gray-400 text-sm mb-1">推計される運命の相手の人数</p>
+                        <p class="text-5xl font-mono-clock text-pink-400 font-bold tracking-wider drop-shadow-[0_0_10px_rgba(236,72,153,0.5)]">
+                            <span id="fermi-result">0</span> <span class="text-lg text-gray-500">人</span>
+                        </p>
+                    </div>
+
+                    <div class="flex-grow relative min-h-[250px]">
+                        <canvas id="fermiChart"></canvas>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-slate-700/50">
+                        <p class="text-xs text-center text-cyan-300 font-bold">
+                            💡 教訓: 確率が低くても、行動（分母）を増やせば出会いは増える！<br>
+                            まずは身近なコミュニティやMoodleでの学び合いを大切にしよう。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- フッター -->
+    <footer class="mt-auto py-8 bg-slate-950 border-t border-slate-800 text-xs text-gray-500">
+        <div class="max-w-[1440px] w-full mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                    <p class="text-sm font-bold text-cyan-500 mb-1 flex items-center gap-2"><span>🕐</span> Current Time</p>
+                    <p id="current-time" class="text-xl text-gray-200 font-mono tracking-wide">--:--:--</p>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                    <p class="text-sm font-bold text-cyan-500 mb-2 flex items-center gap-2"><span>🌤️</span> Weather Report</p>
+                    <div id="weather-info" class="text-xs text-gray-400 grid grid-cols-2 sm:grid-cols-4 gap-y-2 gap-x-4">
+                        <div class="flex items-center gap-1">札幌: <span class="text-gray-300 font-bold">--°C</span></div>
+                        <div class="flex items-center gap-1">仙台: <span class="text-gray-300 font-bold">--°C</span></div>
+                        <div class="flex items-center gap-1">東京: <span class="text-gray-300 font-bold">--°C</span></div>
+                        <div class="flex items-center gap-1">金沢: <span class="text-gray-300 font-bold">--°C</span></div>
+                        <div class="flex items-center gap-1">名古屋: <span class="text-gray-300 font-bold">--°C</span></div>
+                        <div class="flex items-center gap-1">大阪: <span class="text-gray-300 font-bold">--°C</span></div>
+                        <div class="flex items-center gap-1">福岡: <span class="text-gray-300 font-bold">--°C</span></div>
+                        <div class="flex items-center gap-1">那覇: <span class="text-gray-300 font-bold">--°C</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center pt-4 border-t border-slate-900">
+                <p>&copy; 2025 Teraoka-Denshi. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 顔表情認識モーダル (デザイン調整) -->
+    <div id="emotion-modal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col overflow-hidden animate-fade-in">
+            <div class="p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-gray-100 flex items-center gap-2"><span class="text-orange-400">😊</span> 顔体操モード</h2>
+                <button id="close-emotion-modal" class="text-gray-400 hover:text-white text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-700 transition-colors">&times;</button>
+            </div>
+    
+            <div class="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
+                <video id="emotion-video" class="w-full h-full object-cover" autoplay muted playsinline></video>
+                <canvas id="emotion-canvas" class="absolute inset-0 w-full h-full"></canvas>
+            </div>
+            
+            <div class="p-6 bg-slate-800">
+                <div id="emotion-result" class="mb-4 p-4 bg-slate-900 border border-slate-700 rounded-xl text-center h-20 flex items-center justify-center">
+                    <p class="text-gray-400 animate-pulse">カメラを起動してください...</p>
+                </div>
+                <button id="capture-emotion-btn" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg transition-colors">現在の表情をショット</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 
+      アプリケーションロジック 
+      注意: 元のコードのロジックを完全に維持しています。
+    -->
+    <script>
+    // ---------------------------------------------------------
+    // クラスターデータ定義
+    // ---------------------------------------------------------
+    const clusterDescriptions = {
+        0: { title: "「AI研究者・ハッカー (理論×応用)」", desc: "数理モデルと生成AI技術の両方を深く探究したい研究志向タイプ。" },
+        1: { title: "「データサイエンス基礎 (理論×基礎)」", desc: "データサイエンスや数学的背景をしっかり固めたい理論重視タイプ。" },
+        2: { title: "「ITエンジニア基礎 (Web×基礎)」", desc: "プログラミングやWebの仕組みなど、ITの基礎体力をつけたいタイプ。" },
+        3: { title: "「スタンダード・総合 (バランス型)」", desc: "AI・情報の基礎から応用までをバランスよく学びたいタイプ。" },
+        4: { title: "「AIアプリクリエイター (Web×応用)」", desc: "理屈よりも動くものを！生成AIやWeb技術でアプリを作りたいタイプ。" }
+    };
+
+    // ---------------------------------------------------------
+    // デフォルトCSVデータ
+    // ---------------------------------------------------------
+    const defaultCsvData = `コースNo,コース名（短縮）,数理モデル,識別AI,生成AI,DS,ネット,教科情報,評価の根拠と特記事項,Factor1_Score,Factor2_Score,Cluster,Recommended_Order
+    24,RAG『坊っちゃん』,2,2,5,3,3,4,ベクトル検索(Embedding)、チャンク分割、RAGシステム構築,-1.4875803891596262,-1.4622888277454569,0,1
+    21,LLM入門,3,2,4,3,3,4,LLM概論、プロンプトエンジニアリング、API活用の基礎,-0.9025888761481634,-1.2874290985724908,0,2
+    1,TSP最適化,5,1,1,2,2,4,グラフ理論、ヒューリスティクス探索、NP困難問題へのアプローチ,0.0071368877825889,-0.8784721667106025,0,3
+    11,AI探偵(最適化),5,1,1,3,3,4,量子アニーリング(Fixstars Amplify)と組合せ最適化,0.1373681576696952,-0.7005292012959694,0,4
+    20,おせち最適化,5,1,1,3,3,4,量子アニーリング、イジングモデル、制約条件の定式化,0.1373681576696952,-0.7005292012959694,0,5
+    9,生成AI基礎(数字),4,3,5,4,2,4,潜在空間の数学、VAEの確率分布、GANによる画像生成,0.7085086740501467,-1.570588414234168,0,6
+    10,LLM基礎(Transf),5,2,5,3,2,4,Q/K/V行列演算、Positional Encoding、翻訳モデル実装,0.3186559168962835,-1.8031427282744463,0,7
+    25,時系列分析入門,5,2,2,5,2,4,ARIMA/SARIMAモデル、定常性検定(ADF)、自己相関,1.875627424606476,-0.7803706849421969,1,8
+    19,CNN基礎,4,5,2,4,1,4,畳み込み演算、カーネル、プーリング、スクラッチ実装,2.0811428111644115,-0.779047012499893,1,9
+    41,レコメンド協調,5,3,1,5,2,4,協調フィルタリング、コサイン類似度、行列演算,2.270983513232195,-0.4847172819619508,1,10
+    2,Transformer株価予測,5,5,3,5,2,5,Attention機構の数理、時系列モデル比較（CNN/LSTM/Transformer）,2.197296018407401,0.1866100155061296,1,11
+    3,アナログメーター読取,4,5,1,5,2,5,画像特徴抽出(VGG16)と回帰分析(LightGBM)のハイブリッドモデル,2.010299650026917,0.8110010491994164,1,12
+    16,Iris機械学習,4,5,1,5,2,5,決定木・kNNの境界線可視化、ハイパーパラメータ調整,2.010299650026917,0.8110010491994164,1,13
+    31,画像AI FT,4,5,1,4,2,5,ResNet/VGG16転移学習、残差接続、CIFAR-10分類,1.4308114684873103,0.699240408966418,1,14
+    13,LLM FT探究,4,5,2,5,3,5,BERT構造理解、事前学習タスク(MLM/NSP)、文書分類,1.4283776901640903,0.6107664534256336,1,15
+    7,タイタニックDS,3,4,1,5,2,5,データ前処理、EDA（探索的データ分析）、決定木による分類,1.2952821448103882,0.8733217589570395,1,16
+    43,クラスタリング,3,4,1,5,2,5,K-means法、ユークリッド距離、階層型クラスタリング,1.2952821448103882,0.8733217589570395,1,17
+    27,情報I共テ(3-4問),3,1,1,5,1,5,アルゴリズムトレース、相関係数、箱ひげ図の読解,0.9564659352167112,0.7194299877009191,1,18
+    32,情報II(データ),5,1,1,5,3,5,重回帰分析、主成分分析(PCA)、次元削減の数理,0.9626050415139824,0.6686802544992858,1,19
+    35,情報I(モデル化),5,1,1,4,2,5,確定・確率モデル、モンテカルロ法、ロジスティック曲線,0.8323737716268763,0.4907372890846527,1,20
+    18,NN探検隊,5,4,1,3,3,5,パーセプトロンの数理、誤差逆伝播法、活性化関数,0.5917017996809465,0.5328684201077747,1,21
+    22,NLP基礎(TF-IDF),5,3,4,5,4,5,TF-IDF統計モデル、ベクトル空間モデル、コサイン類似度,0.6407350660612885,-0.0059152191356753,1,22
+    33,情報II(Master),3,1,1,5,2,4,データサイエンスプロセス(TDSP)の体系化と実践,0.8409485027991371,-0.3600758624467047,1,23
+    44,チーム探究,3,1,1,5,2,4,チームDSプロセス(TDSP)、プロジェクト管理、欠損値処理,0.8409485027991371,-0.3600758624467047,1,24
+    14,性格診断BERT,4,5,1,4,3,4,適合率・再現率によるモデル評価、Kaggleデータセット利用,1.3152940360697365,-0.3802654411812057,1,25
+    42,テキスト分析,3,5,1,5,3,4,形態素解析(Janome)、感情分析、ワードクラウド,1.4424557528082067,-0.176947609165756,1,26
+    12,文章スタイル分析,5,3,3,5,3,5,多次元尺度構成法(MDS)、ユークリッド距離、計量文献学,1.2226570259241152,0.1943193766381075,1,27
+    5,AIの基礎,2,4,4,2,2,5,AI史、識別/生成の概念区分、社会実装への倫理的考察,-1.2935040092405476,-0.1696537328257567,2,28
+    17,物理探究(光),5,1,3,2,4,5,スネルの法則、フェルマーの原理、最短経路探索(A*),-1.4904465111779914,-0.1332531829289093,2,29
+    4,Python基礎,2,1,1,2,2,5,プログラミング言語仕様、制御構文、関数、モジュールの基礎,-1.6835819858557466,0.5418875839660108,2,30
+    37,情報I(デザイン),2,1,1,2,3,5,デザイン思考、HCD、デジタルデータの形式、著作権,-2.1328388975082477,0.6080699091476456,2,31
+    34,情報II(システム),1,3,1,3,5,5,情報システム設計(DFD/UML)、テスト手法、Web実装,-2.3788089232439926,1.002225355576022,2,32
+    15,数理最適化冒険,5,1,2,3,2,5,線形計画法(PuLP)、ナップザック問題、厳密解と近似解,0.120220541876943,0.1125597278962367,3,33
+    26,情報I共テ(1-2問),4,1,2,4,3,5,シミュレーション、デジタル証明、IPアドレス、情報社会,-0.2018746530370869,0.3820598850933214,3,34
+    8,探究の基礎,3,3,2,3,2,5,PPDACサイクル、仮説検証プロセス、相関係数と散布図,-0.2590503068945444,0.3541470755107967,3,35
+    40,情報I(アルゴ),4,1,1,3,2,5,探索・整列アルゴリズム、計算量(オーダー)、データ構造,-0.1994408747138669,0.4705338406341059,3,36
+    36,情報I(コンピ),3,1,1,3,1,5,コンピュータ5大装置、2進数演算、浮動小数点誤差,-0.2025104278625027,0.4959087072349226,3,37
+    39,DB基礎(SQL),2,1,1,5,3,5,リレーショナルモデル、SQL(JOIN/GROUP BY)、正規化,-0.3943743528894263,0.9433518298466405,3,38
+    38,情報I(ネット),3,1,1,5,5,5,ネットワーク階層、Wi-Fi、パケット通信、統計的分析,-0.8405617113932913,0.9841592884274584,3,39
+    6,Pythonゲーム制作,3,1,1,2,1,5,物理演算（衝突判定）、座標計算、イベントドリブン処理,-0.7819986094021096,0.3841480670019243,3,40
+    23,漢字しりとりBot,1,1,5,2,3,4,LLM API(Gemini)利用、形態素解析、アプリ開発,-2.782086075915762,-1.511728758220832,4,41
+    29,Webアプリ活用,1,1,1,2,5,4,Web API連携、JSONパース、非同期通信,-3.149939706379458,-0.3136964240358919,4,42
+    30,Webの歴史,1,1,3,1,5,5,インターネット史、TCP/IP、Web3.0、サーバーサイド基礎,-4.328497463574644,0.1873972691495332,4,43
+    28,Web制作基礎,1,1,4,1,5,5,フロントエンド(HTML/CSS/JS)、GitHub Copilot活用,-4.461162511784971,-0.0790196518058843,4,44
+    `;
+
+    // ---------------------------------------------------------
+    // アプリケーションの状態
+    // ---------------------------------------------------------
+    let courseData = [];
+    let chartInstance = null;
+    let clusterCentroids = {};
+    let userPos = { x: 0, y: 0 };
+
+    // ③学習済みコースの保存用セット
+    const LEARNED_STORAGE_KEY = 'moodle-app-learned-courses';
+    let learnedCourses = new Set();
+
+    const clusterColors = [
+        { bg: 'rgba(34, 211, 238, 0.7)', border: 'rgba(34, 211, 238, 1)' }, // 0: AI研究者 (Cyan)
+        { bg: 'rgba(163, 230, 53, 0.7)', border: 'rgba(163, 230, 53, 1)' }, // 1: DS基礎 (Lime)
+        { bg: 'rgba(251, 146, 60, 0.7)', border: 'rgba(251, 146, 60, 1)' }, // 2: IT基礎 (Orange)
+        { bg: 'rgba(192, 132, 252, 0.7)', border: 'rgba(192, 132, 252, 1)' }, // 3: 総合 (Purple)
+        { bg: 'rgba(156, 163, 175, 0.7)', border: 'rgba(156, 163, 175, 1)' }  // 4: その他
+    ];
+
+    // ---------------------------------------------------------
+    // 初期化
+    // ---------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. スライダーの設定
+        setupSliderControl('slider-x', 'val-x-tooltip', (val) => {
+            userPos.x = parseFloat(val);
+            updateApp();
+        });
+
+        setupSliderControl('slider-y', 'val-y-tooltip', (val) => {
+            userPos.y = parseFloat(val);
+            updateApp();
+        });
+
+        // 2. CSVアップロードの設定
+        const fileInput = document.getElementById('csv-upload');
+        if (fileInput) {
+            fileInput.addEventListener('change', handleFileUpload);
+        }
+
+        // 3. 学習状況の読み込み
+        loadLearnedState();
+
+        // 4. データ読み込み
+        loadInitialData();
+
+        // 5. 現在時刻の表示
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+
+        // 6. 天気情報の取得
+        fetchWeatherData();
+        setInterval(fetchWeatherData, 600000); // 10分ごとに更新
+
+        // 7. 顔表情認識の初期化
+        initializeEmotionDetection();
+
+        // 8. チャットボットの初期化 (New: WebLLM)
+        initializeWebLLMChatbot();
+
+        // 9. 名言の表示
+        displayRandomQuote();
+
+        // 10. 学習記録の初期化
+        initializeLearningRecord();
+        
+        // 11. フェルミ推定の初期化
+        initializeFermi();
+    });
+
+    // ---------------------------------------------------------
+    // スライダー制御
+    // ---------------------------------------------------------
+    function setupSliderControl(sliderId, tooltipId, onChangeCallback) {
+        const slider = document.getElementById(sliderId);
+        const tooltip = document.getElementById(tooltipId);
+        const isRtl = slider.getAttribute('dir') === 'rtl';
+
+        function updateView() {
+            const val = parseFloat(slider.value);
+            const min = parseFloat(slider.min);
+            const max = parseFloat(slider.max);
+            
+            tooltip.textContent = val.toFixed(2);
+            let percentage = ((val - min) / (max - min)) * 100;
+            
+            // 色定数定義
+            const colorLeft = sliderId === 'slider-x' ? '#06b6d4' : '#8b5cf6'; // Cyan or Purple
+            const colorBg = '#334155'; // Slate-700
+
+            if (isRtl) {
+                const leftPos = ((max - val) / (max - min)) * 100;
+                slider.style.background = `linear-gradient(to right, ${colorLeft} ${leftPos}%, ${colorBg} ${leftPos}%)`;
+                const thumbWidth = 24;
+                const offset = (thumbWidth / 2) - (thumbWidth * (leftPos / 100));
+                tooltip.style.left = `calc(${leftPos}% + ${offset}px)`;
+            } else {
+                slider.style.background = `linear-gradient(to right, ${colorLeft} ${percentage}%, ${colorBg} ${percentage}%)`;
+                const thumbWidth = 24;
+                const offset = (thumbWidth / 2) - (thumbWidth * (percentage / 100));
+                tooltip.style.left = `calc(${percentage}% + ${offset}px)`;
+            }
+            onChangeCallback(val);
+        }
+        slider.addEventListener('input', updateView);
+        updateView();
+    }
+
+    // ---------------------------------------------------------
+    // CSV処理
+    // ---------------------------------------------------------
+    function handleDrop(e) {
+        e.preventDefault();
+        document.getElementById('drop-zone').classList.remove('active');
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.endsWith('.csv')) {
+            const reader = new FileReader();
+            reader.onload = function(e) { parseCSV(e.target.result); };
+            reader.readAsText(file);
+        } else {
+            alert("CSVファイルのみ対応しています。");
+        }
+    }
+
+    function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) { parseCSV(e.target.result); };
+        reader.readAsText(file);
+    }
+
+    async function loadInitialData() {
+        try {
+            const response = await fetch('course_learning_path.csv');
+            if (response.ok) {
+                const csvText = await response.text();
+                parseCSV(csvText);
+            } else {
+                throw new Error("Local file not found");
+            }
+        } catch (error) {
+            console.log("Using embedded default data.");
+            parseCSV(defaultCsvData);
+        }
+    }
+
+    function parseCSV(csvText) {
+        Papa.parse(csvText, {
+            header: true,
+            dynamicTyping: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                courseData = results.data.map((row, index) => ({
+                    id: row['コースNo'],
+                    name: row['コース名（短縮）'],
+                    desc: row['評価の根拠と特記事項'],
+                    f1: row['Factor1_Score'], 
+                    f2: row['Factor2_Score'], 
+                    cluster: row['Cluster'] !== undefined ? row['Cluster'] : 4,
+                    originalIndex: index
+                })).filter(item => item.name && item.f1 != null && item.f2 != null);
+                
+                calculateCentroids();
+                if (chartInstance) chartInstance.destroy();
+                initChart();
+                updateApp();
+            }
+        });
+    }
+
+    function calculateCentroids() {
+        const sums = {};
+        courseData.forEach(c => {
+            if (!sums[c.cluster]) sums[c.cluster] = { x: 0, y: 0, count: 0 };
+            sums[c.cluster].x += c.f1;
+            sums[c.cluster].y += c.f2;
+            sums[c.cluster].count++;
+        });
+        clusterCentroids = {};
+        Object.keys(sums).forEach(k => {
+            clusterCentroids[k] = {
+                x: sums[k].x / sums[k].count,
+                y: sums[k].y / sums[k].count
+            };
+        });
+    }
+
+    // ---------------------------------------------------------
+    // 学習状況管理機能
+    // ---------------------------------------------------------
+    function loadLearnedState() {
+        const stored = localStorage.getItem(LEARNED_STORAGE_KEY);
+        if (stored) {
+            try {
+                const arr = JSON.parse(stored);
+                learnedCourses = new Set(arr);
+            } catch (e) {
+                console.error("Failed to load learned state", e);
+                learnedCourses = new Set();
+            }
+        }
+    }
+
+    function saveLearnedState() {
+        localStorage.setItem(LEARNED_STORAGE_KEY, JSON.stringify(Array.from(learnedCourses)));
+    }
+
+    function toggleLearned(courseId) {
+        if (learnedCourses.has(courseId)) {
+            learnedCourses.delete(courseId);
+        } else {
+            learnedCourses.add(courseId);
+        }
+        saveLearnedState();
+        
+        // グラフとテーブルを再描画して状態を反映
+        if (chartInstance) chartInstance.destroy();
+        initChart();
+        updateApp();
+    }
+
+    // ---------------------------------------------------------
+    // アプリ更新ロジック
+    // ---------------------------------------------------------
+    function updateApp() {
+        if (courseData.length === 0) return;
+
+        let minDistance = Infinity;
+        let closestCluster = -1;
+
+        Object.keys(clusterCentroids).forEach(clusterId => {
+            const c = clusterCentroids[clusterId];
+            const distSq = Math.pow(c.x - userPos.x, 2) + Math.pow(c.y - userPos.y, 2);
+            if (distSq < minDistance) {
+                minDistance = distSq;
+                closestCluster = parseInt(clusterId);
+            }
+        });
+
+        const commentDiv = document.getElementById('cluster-comment');
+        const clusterInfo = clusterDescriptions[closestCluster] || clusterDescriptions[4];
+        commentDiv.innerHTML = `
+            <p class="text-lg font-bold text-gray-400">あなたのタイプ診断</p>
+            <p class="text-lg font-bold text-cyan-400 mt-1">${clusterInfo.title}</p>
+            <p class="text-xs font-bold text-gray-300 mt-1">${clusterInfo.desc}</p>
+        `;
+
+        const clusterCourses = courseData
+            .filter(c => c.cluster === closestCluster)
+            .sort((a, b) => a.originalIndex - b.originalIndex);
+        updateTable(clusterCourses);
+
+        updateChart();
+    }
+
+    function updateTable(courses) {
+        const tbody = document.getElementById('recommendation-table');
+        tbody.innerHTML = '';
+        
+        if (courses.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">該当なし</td></tr>';
+            return;
+        }
+
+        courses.forEach((course) => {
+            const isLearned = learnedCourses.has(course.id);
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-slate-800/80 transition-colors border-b border-slate-700/50 last:border-0";
+            
+            // ① ボタン状態の定義
+            const btnText = isLearned ? '学習済' : '未学習';
+            const btnClass = isLearned 
+                ? 'bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-500/30 border border-green-500' 
+                : 'bg-slate-700 hover:bg-slate-600 text-gray-400 hover:text-white border border-slate-600';
+            
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-bold text-center text-gray-500 align-top pt-4">#${course.id}</td>
+                <td class="px-4 py-3">
+                    <div class="font-bold text-cyan-400 text-sm mb-1">${course.name}</div>
+                    <div class="text-xs text-gray-400 leading-relaxed">${course.desc || ''}</div>
+                </td>
+                <td class="px-4 py-3 text-center align-middle">
+                    <button onclick="toggleLearned(${course.id})" class="text-xs font-bold py-1 px-3 rounded-lg transition-all transform active:scale-95 ${btnClass}">
+                        ${btnText}
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // ---------------------------------------------------------
+    // Chart.js 設定
+    // ---------------------------------------------------------
+    function initChart() {
+        const ctx = document.getElementById('scatterChart').getContext('2d');
+        
+        const datasets = [];
+        const clusters = [...new Set(courseData.map(c => c.cluster))].sort((a, b) => a - b);
+
+        // クラスターデータ
+        clusters.forEach(clusterId => {
+            const clusterItems = courseData.filter(c => c.cluster === clusterId);
+            const colorDef = clusterColors[clusterId] || clusterColors[4];
+
+            datasets.push({
+                label: `Cluster ${clusterId}`,
+                data: clusterItems.map(c => ({ x: c.f1, y: c.f2, name: c.name, id: c.id })),
+                backgroundColor: colorDef.bg,
+                borderColor: colorDef.border,
+                
+                pointBorderColor: function(context) {
+                    const raw = context.raw;
+                    if (raw && raw.id && learnedCourses.has(raw.id)) {
+                        return '#FCD34D'; // Gold
+                    }
+                    return colorDef.border;
+                },
+                pointBorderWidth: function(context) {
+                    const raw = context.raw;
+                    if (raw && raw.id && learnedCourses.has(raw.id)) {
+                        return 3; 
+                    }
+                    return 1;
+                },
+                pointRadius: function(context) {
+                    const raw = context.raw;
+                    if (raw && raw.id && learnedCourses.has(raw.id)) {
+                        return 8; 
+                    }
+                    return 6;
+                },
+                pointHoverRadius: 10
+            });
+        });
+
+        // ユーザー現在地
+        datasets.push({
+            label: 'あなた',
+            data: [{ x: userPos.x, y: userPos.y }], 
+            backgroundColor: 'rgba(255, 255, 255, 0)', 
+            borderColor: '#ffffff',
+            borderWidth: 3,
+            pointRadius: 15,
+            pointStyle: 'star',
+            pointHoverRadius: 18,
+            order: 0 
+        });
+
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = '#334155';
+
+        chartInstance = new Chart(ctx, {
+            type: 'scatter',
+            data: { datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        reverse: true,
+                        min: -5.0,
+                        max: 3.0,
+                        grid: { color: 'rgba(51, 65, 85, 0.5)', borderDash: [2, 2] },
+                        ticks: { display: false },
+                        title: { display: false }
+                    },
+                    y: {
+                        reverse: true,
+                        min: -2.0,
+                        max: 1.5,
+                        grid: { color: 'rgba(51, 65, 85, 0.5)', borderDash: [2, 2] },
+                        ticks: { display: false },
+                        title: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { 
+                        display: true,
+                        position: 'bottom',
+                        labels: { usePointStyle: true, boxWidth: 8, color: '#cbd5e1', font: { size: 10 }, padding: 20 }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#22d3ee', // Cyan
+                        bodyColor: '#e2e8f0',
+                        borderColor: 'rgba(148, 163, 184, 0.2)',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                return context.raw.name ? ` ${context.raw.name}` : ' あなた';
+                            },
+                            afterLabel: function(context) {
+                                if (context.raw && context.raw.id && learnedCourses.has(context.raw.id)) {
+                                    return ' (学習済)';
+                                }
+                                return '';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateChart() {
+        if (!chartInstance) return;
+        const myDatasetIndex = chartInstance.data.datasets.length - 1;
+        if (chartInstance.data.datasets[myDatasetIndex].label === 'あなた') {
+            chartInstance.data.datasets[myDatasetIndex].data = [{ x: userPos.x, y: userPos.y }];
+        }
+        chartInstance.update('none'); 
+    }
+
+    // ---------------------------------------------------------
+    // ユーティリティ
+    // ---------------------------------------------------------
+    function updateCurrentTime() {
+        const now = new Date();
+        const dateString = now.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        const timeString = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById('current-time').textContent = `${dateString} ${timeString}`;
+    }
+
+    function getWeatherEmoji(code) {
+        if (code === 0) return '☀️'; 
+        if (code === 1 || code === 2 || code === 3) return '⛅'; 
+        if (code === 45 || code === 48) return '🌫️'; 
+        if (code >= 51 && code <= 55) return '🌧️'; 
+        if (code >= 56 && code <= 57) return '🌧️'; 
+        if (code >= 61 && code <= 65) return '☔'; 
+        if (code >= 66 && code <= 67) return '☔'; 
+        if (code >= 71 && code <= 77) return '❄️'; 
+        if (code >= 80 && code <= 82) return '🌧️'; 
+        if (code >= 85 && code <= 86) return '❄️'; 
+        if (code >= 95) return '⚡'; 
+        if (code >= 96 && code <= 99) return '⛈️'; 
+        return '❓';
+    }
+
+    async function fetchWeatherData() {
+        const cities = {
+            '札幌': { lat: 43.0642, lon: 141.3469 },
+            '仙台': { lat: 38.2688, lon: 140.8722 },
+            '東京': { lat: 35.6762, lon: 139.6503 },
+            '金沢': { lat: 36.5613, lon: 136.6562 },
+            '名古屋': { lat: 35.1815, lon: 136.9066 },
+            '大阪': { lat: 34.6937, lon: 135.5023 },
+            '福岡': { lat: 33.5904, lon: 130.4017 },
+            '那覇': { lat: 26.2128, lon: 127.6798 }
+        };
+        try {
+            for (const [city, coords] of Object.entries(cities)) {
+                const response = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,weather_code&timezone=Asia/Tokyo`
+                );
+                const data = await response.json();
+                const temp = Math.round(data.current.temperature_2m);
+                const humidity = data.current.relative_humidity_2m;
+                const weatherCode = data.current.weather_code;
+                const emoji = getWeatherEmoji(weatherCode);
+
+                const weatherElement = document.querySelector(`#weather-info`);
+                if (weatherElement) {
+                    const cityDiv = Array.from(weatherElement.querySelectorAll('div')).find(div => div.textContent.startsWith(city));
+                    if (cityDiv) {
+                        cityDiv.innerHTML = `${city}: <span class="text-gray-300 font-bold">${emoji} ${temp}°C <span class="text-[10px] text-cyan-400">  💧湿 ${humidity}%</span></span>`;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('天気情報の取得に失敗しました:', error);
+        }
+    }
+
+    function loadState() {
+        const savedX = localStorage.getItem('slider-x-value');
+        const savedY = localStorage.getItem('slider-y-value');
+        if (savedX !== null) {
+            document.getElementById('slider-x').value = savedX;
+            document.getElementById('slider-x').dispatchEvent(new Event('input'));
+        }
+        if (savedY !== null) {
+            document.getElementById('slider-y').value = savedY;
+            document.getElementById('slider-y').dispatchEvent(new Event('input'));
+        }
+    }
+
+    function saveState() {
+        localStorage.setItem('slider-x-value', document.getElementById('slider-x').value);
+        localStorage.setItem('slider-y-value', document.getElementById('slider-y').value);
+    }
+
+    document.getElementById('slider-x').addEventListener('input', saveState);
+    document.getElementById('slider-y').addEventListener('input', saveState);
+    window.addEventListener('DOMContentLoaded', loadState);
+
+    // ---------------------------------------------------------
+    // 今日の名言機能
+    // ---------------------------------------------------------
+    const quotesDb = [
+        { text: "彼を知り己を知れば百戦殆うからず", author: "孫子" },
+        { text: "天才とは、1%のひらめきと99%の努力である", author: "トーマス・エジソン" },
+        { text: "最大の名誉は決して倒れないことではない。倒れるたびに起き上がることである", author: "孔子" },
+        { text: "夢見ることができれば、それは実現できる", author: "ウォルト・ディズニー" },
+        { text: "未来を予測する最良の方法は、未来を創ることだ", author: "アラン・ケイ" },
+        { text: "成功とは、情熱を失わずに失敗を重ねていく能力のことだ", author: "ウィンストン・チャーチル" },
+        { text: "千の道のりも一歩から", author: "老子" },
+        { text: "学びて思わざれば則ち罔（くら）し、思いて学ばざれば則ち殆（あやう）し", author: "孔子" },
+        { text: "Stay hungry, stay foolish.", author: "スティーブ・ジョブズ" },
+        { text: "情報は知識ではない。知識の源は経験のみである", author: "アルバート・アインシュタイン" },
+        { text: "明日死ぬかのように生きよ。永遠に生きるかのように学べ", author: "マハトマ・ガンディー" },
+        { text: "失敗を恐れるな。失敗は成長の母である。", author: "松下幸之助" },
+        { text: "やってみなはれ。やらなわからしまへんで。", author: "本田宗一郎" },
+        { text: "教育の根は苦いが、その実は甘い。", author: "アリストテレス" },
+        { text: "第一に自分の人生を計画せよ。そうすれば他人に操られることはない。", author: "スティーブン・R・コヴィー" },
+        { text: "人生は学びの連続であり、学びが人生を豊かにする。", author: "レフ・トルストイ" },
+        { text: "出来ると思えば出来る。出来ないと思えば出来ない。", author: "ヘレン・ケラー" },
+        { text: "二十年後、あなたはやったことよりもやらなかったことに失望するだろう。", author: "マーク・トウェイン" },
+        { text: "自分を信じよ。それが人生の出発点である。", author: "ウィリアム・シェイクスピア" },
+        { text: "成功とは、小さな努力を重ねることの積み重ねである。", author: "ビル・ゲイツ" },
+        { text: "努力は必ずしも報われない。しかし、努力しなければ何も始まらない。", author: "イソップ" },
+        { text: "継続は力なり", author: "ことわざ" },
+        { text: "失敗は成功のもと", author: "ことわざ" },
+        { text: "小さな努力の積み重ねが大きな違いを生む", author: "匿名" },
+        { text: "挑戦しない者に成長なし", author: "匿名" },
+        { text: "学ぶことは自分への投資だ", author: "匿名" },
+        { text: "今日できることを明日に延ばすな", author: "匿名" },
+        { text: "好奇心が未来を開く", author: "匿名" },
+        { text: "自分を信じて一歩踏み出そう", author: "匿名" },
+        { text: "できるかどうかより、やるかどうかだ", author: "匿名" },
+        { text: "目標は小さく、習慣は大きく", author: "匿名" },
+        { text: "興味は最高の教師だ", author: "匿名" },
+        { text: "考えるだけでなく手を動かせ", author: "匿名" },
+        { text: "本当の強さは続けられること", author: "匿名" },
+        { text: "今日の努力が明日の自信になる", author: "匿名" },
+        { text: "つまずいたら立ち上がればいい", author: "匿名" },
+        { text: "ほんの少しの改善が未来を変える", author: "匿名" },
+        { text: "他人と比べるより昨日の自分と比べよ", author: "匿名" },
+        { text: "まずは好きなことを続けてみよう", author: "匿名" },
+        { text: "目的がある人は道に迷わない", author: "匿名" },
+        { text: "間違いは学び、恥じることはない", author: "匿名" },
+        { text: "何事も達成するまでは不可能に見える", author: "ネルソン・マンデラ" },
+        { text: "間違いを犯したことのない人は、何も新しいことをしたことがない人だ", author: "アルバート・アインシュタイン" },
+        { text: "知るだけでは不十分だ、応用せよ。願うだけでは不十分だ、行動せよ", author: "ゲーテ" }
+    ];
+
+    function displayRandomQuote() {
+        const quoteText = document.getElementById('quote-text');
+        const quoteAuthor = document.getElementById('quote-author');
+        if (!quoteText || !quoteAuthor) return;
+
+        const randomIndex = Math.floor(Math.random() * quotesDb.length);
+        const quote = quotesDb[randomIndex];
+
+        quoteText.textContent = quote.text;
+        quoteAuthor.textContent = quote.author;
+    }
+
+
+    // ---------------------------------------------------------
+    // 学習記録機能
+    // ---------------------------------------------------------
+    const LEARNING_RECORD_KEY = 'moodle-app-learning-record';
+    
+    function initializeLearningRecord() {
+        const saveBtn = document.getElementById('save-record-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', saveAndDownloadRecord);
+        }
+        renderRecordHistory();
+    }
+
+    function getRecordHistory() {
+        const stored = localStorage.getItem(LEARNING_RECORD_KEY);
+        if (stored) {
+            try {
+                return JSON.parse(stored);
+            } catch(e) { console.error(e); }
+        }
+        return [];
+    }
+
+    function renderRecordHistory() {
+        const historyList = document.getElementById('record-history-list');
+        if (!historyList) return;
+
+        const records = getRecordHistory();
+        historyList.innerHTML = '';
+
+        if (records.length === 0) {
+            historyList.innerHTML = '<p class="text-gray-500 text-center mt-10">履歴はありません</p>';
+            return;
+        }
+
+        records.slice().reverse().forEach(record => {
+            const div = document.createElement('div');
+            div.className = "bg-slate-800 p-3 rounded border border-slate-700 hover:border-slate-500 transition-colors";
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs text-yellow-400 font-bold">${record.date}</span>
+                </div>
+                <ul class="list-decimal list-inside text-gray-300 pl-1 space-y-1">
+                    <li>${record.lines[0] || '(未入力)'}</li>
+                    <li>${record.lines[1] || '(未入力)'}</li>
+                    <li>${record.lines[2] || '(未入力)'}</li>
+                </ul>
+            `;
+            historyList.appendChild(div);
+        });
+    }
+
+    function saveAndDownloadRecord() {
+        const l1 = document.getElementById('record-line-1').value;
+        const l2 = document.getElementById('record-line-2').value;
+        const l3 = document.getElementById('record-line-3').value;
+
+        if (!l1 && !l2 && !l3) {
+            alert("少なくとも1つの項目を入力してください。");
+            return;
+        }
+
+        const now = new Date();
+        const dateStr = now.toLocaleString('ja-JP');
+        const newRecord = {
+            date: dateStr,
+            lines: [l1, l2, l3]
+        };
+
+        const history = getRecordHistory();
+        history.push(newRecord);
+        localStorage.setItem(LEARNING_RECORD_KEY, JSON.stringify(history));
+
+        renderRecordHistory();
+
+        downloadRecordAsText(history);
+
+        document.getElementById('record-line-1').value = '';
+        document.getElementById('record-line-2').value = '';
+        document.getElementById('record-line-3').value = '';
+    }
+
+    function downloadRecordAsText(history) {
+        let content = "=== 学習記録履歴 ===\n\n";
+        history.forEach(rec => {
+            content += `[日時] ${rec.date}\n`;
+            content += `1. : ${rec.lines[0]}\n`;
+            content += `2. : ${rec.lines[1]}\n`;
+            content += `3. : ${rec.lines[2]}\n`;
+            content += "----------------------------\n";
+        });
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `learning_history_${new Date().toISOString().slice(0,10)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // ---------------------------------------------------------
+    // 集中タイマー機能
+    // ---------------------------------------------------------
+    let timerInterval = null;
+    let timerSeconds = 25 * 60;
+    let isTimerRunning = false;
+
+    function updateTimerDisplay() {
+        const m = Math.floor(timerSeconds / 60);
+        const s = timerSeconds % 60;
+        const display = document.getElementById('timer-display');
+        if (display) {
+            display.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+    }
+
+    window.setTimer = function(minutes) {
+        stopTimer();
+        timerSeconds = minutes * 60;
+        updateTimerDisplay();
+    };
+
+    function startTimer() {
+        if (isTimerRunning) return;
+        isTimerRunning = true;
+        const startBtn = document.getElementById('timer-start-btn');
+        if (startBtn) {
+            startBtn.textContent = "PAUSE";
+            startBtn.classList.remove('bg-cyan-600', 'hover:bg-cyan-500', 'shadow-cyan-500/20');
+            startBtn.classList.add('bg-orange-500', 'hover:bg-orange-400', 'shadow-orange-500/20');
+        }
+
+        timerInterval = setInterval(() => {
+            if (timerSeconds > 0) {
+                timerSeconds--;
+                updateTimerDisplay();
+            } else {
+                stopTimer();
+                alert("時間です！休憩しましょう。");
+            }
+        }, 1000);
+    }
+
+    function stopTimer() {
+        isTimerRunning = false;
+        if (timerInterval) clearInterval(timerInterval);
+        const startBtn = document.getElementById('timer-start-btn');
+        if (startBtn) {
+            startBtn.textContent = "START";
+            startBtn.classList.remove('bg-orange-500', 'hover:bg-orange-400', 'shadow-orange-500/20');
+            startBtn.classList.add('bg-cyan-600', 'hover:bg-cyan-500', 'shadow-cyan-500/20');
+        }
+    }
+
+    function toggleTimer() {
+        if (isTimerRunning) {
+            stopTimer();
+        } else {
+            startTimer();
+        }
+    }
+
+    function resetTimer() {
+        stopTimer();
+        timerSeconds = 25 * 60;
+        updateTimerDisplay();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const startBtn = document.getElementById('timer-start-btn');
+        const resetBtn = document.getElementById('timer-reset-btn');
+        if (startBtn) startBtn.addEventListener('click', toggleTimer);
+        if (resetBtn) resetBtn.addEventListener('click', resetTimer);
+    });
+
+    // ---------------------------------------------------------
+    // フェルミ推定機能
+    // ---------------------------------------------------------
+    let fermiChartInstance = null;
+
+    function initializeFermi() {
+        const sliders = ['fermi-age', 'fermi-sex', 'fermi-edu', 'fermi-charm', 'fermi-phys', 'fermi-meet'];
+        
+        sliders.forEach(id => {
+            const el = document.getElementById(id);
+            const valEl = document.getElementById(`val-${id}`);
+            if(el && valEl) {
+                el.addEventListener('input', (e) => {
+                    const val = e.target.value;
+                    valEl.textContent = `${val}%`;
+                    const percent = (parseFloat(val) / 100) * 100;
+                    // スライダーの背景色更新（ピンク系）
+                    el.style.background = `linear-gradient(to right, #ec4899 ${percent}%, #334155 ${percent}%)`;
+                });
+                // 初期背景色セット
+                const initialVal = el.value;
+                const initialPercent = (parseFloat(initialVal) / 100) * 100;
+                el.style.background = `linear-gradient(to right, #ec4899 ${initialPercent}%, #334155 ${initialPercent}%)`;
+            }
+        });
+
+        const calcBtn = document.getElementById('fermi-calc-btn');
+        if(calcBtn) {
+            calcBtn.addEventListener('click', calculateFermi);
+        }
+    }
+
+    function calculateFermi() {
+        const pop = parseInt(document.getElementById('fermi-pop').value) || 0;
+        const r_age = parseInt(document.getElementById('fermi-age').value) / 100;
+        const r_sex = parseInt(document.getElementById('fermi-sex').value) / 100;
+        const r_edu = parseInt(document.getElementById('fermi-edu').value) / 100;
+        const r_charm = parseInt(document.getElementById('fermi-charm').value) / 100;
+        const r_phys = parseInt(document.getElementById('fermi-phys').value) / 100;
+        const r_meet = parseInt(document.getElementById('fermi-meet').value) / 100;
+
+        // 計算
+        const step1 = pop * r_age;
+        const step2 = step1 * r_sex;
+        const step3 = step2 * r_edu;
+        const step4 = step3 * r_charm;
+        const step5 = step4 * r_phys;
+        const result = step5 * r_meet;
+
+        // 結果表示
+        const resultEl = document.getElementById('fermi-result');
+        
+        // カウントアップアニメーション
+        const startVal = parseInt(resultEl.innerText);
+        const endVal = Math.floor(result);
+        const duration = 1000;
+        const startTime = performance.now();
+
+        function animate(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease-out
+            const ease = 1 - Math.pow(1 - progress, 3);
+            
+            const current = Math.floor(startVal + (endVal - startVal) * ease);
+            resultEl.innerText = current.toLocaleString();
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            }
+        }
+        requestAnimationFrame(animate);
+
+        // チャート描画
+        const ctx = document.getElementById('fermiChart').getContext('2d');
+        if (fermiChartInstance) fermiChartInstance.destroy();
+
+        fermiChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['全人口', '年齢圏内', '対象性別', '学歴・知性', '性格', '外見', '出会い'],
+                datasets: [{
+                    label: '残存人数',
+                    data: [pop, step1, step2, step3, step4, step5, result],
+                    backgroundColor: [
+                        'rgba(148, 163, 184, 0.5)', // Slate
+                        'rgba(34, 211, 238, 0.5)', // Cyan
+                        'rgba(56, 189, 248, 0.5)', // Sky
+                        'rgba(129, 140, 248, 0.5)', // Indigo
+                        'rgba(168, 85, 247, 0.5)', // Purple
+                        'rgba(236, 72, 153, 0.5)', // Pink
+                        'rgba(244, 63, 94, 0.8)'   // Rose (Result)
+                    ],
+                    borderColor: [
+                        'rgba(148, 163, 184, 1)',
+                        'rgba(34, 211, 238, 1)',
+                        'rgba(56, 189, 248, 1)',
+                        'rgba(129, 140, 248, 1)',
+                        'rgba(168, 85, 247, 1)',
+                        'rgba(236, 72, 153, 1)',
+                        'rgba(244, 63, 94, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y', // 横棒グラフ
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(51, 65, 85, 0.3)' },
+                        ticks: { color: '#94a3b8' },
+                        type: 'logarithmic' // 対数スケールにしないと最後が見えないため
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: '#e2e8f0' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        callbacks: {
+                            label: function(context) {
+                                let val = context.raw;
+                                if(val < 1 && val > 0) val = val.toFixed(4);
+                                else val = Math.floor(val).toLocaleString();
+                                return val + ' 人';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ---------------------------------------------------------
+    // 顔表情認識機能
+    // ---------------------------------------------------------
+    let emotionVideoStream = null;
+    let emotionInterval = null;
+    let isModelLoaded = false;
+
+    const targetEmotions = {
+        'happy': '笑顔', 'surprised': '驚き', 'sad': '悲しみ',
+        'angry': '怒り', 'neutral': '無表情', 'disgusted': '不快', 'fearful': '恐怖'
+    };
+
+    function updateStatus(msg, color = "text-gray-300") {
+        const el = document.getElementById('emotion-result');
+        if (el) el.innerHTML = `<p class="${color} font-bold text-lg">${msg}</p>`;
+        console.log(`[Status] ${msg}`);
+    }
+
+    async function initializeEmotionDetection() {
+        if (window.location.protocol === 'file:') {
+            console.warn('file:// プロトコルでは動作しない可能性があります');
+        }
+
+        try {
+            updateStatus("AIエンジン初期化中...", "text-cyan-400");
+            
+            if (faceapi.tf) {
+                await faceapi.tf.ready();
+            }
+
+            const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+            
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+
+            isModelLoaded = true;
+            updateStatus("準備完了：カメラを起動してください", "text-green-400");
+
+        } catch (error) {
+            console.error('Model loading error:', error);
+            updateStatus(`初期化エラー: ${error.message}`, "text-red-400");
+        }
+    }
+
+    async function startEmotionCamera() {
+        const modal = document.getElementById('emotion-modal');
+        const video = document.getElementById('emotion-video');
+        const canvas = document.getElementById('emotion-canvas');
+        
+        if (!isModelLoaded) {
+            alert("AIモデルの準備中です。もう少々お待ちください。");
+            return;
+        }
+
+        if (!video || !canvas) {
+            return;
+        }
+
+        modal.classList.remove('hidden');
+        updateStatus("カメラ映像を取得中...", "text-gray-300");
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: 'user'
+                },
+                audio: false
+            });
+            
+            emotionVideoStream = stream;
+            video.srcObject = stream;
+            
+            await video.play();
+            
+            const checkVideoSize = () => {
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    detectLoop(video, canvas);
+                } else {
+                    setTimeout(checkVideoSize, 100);
+                }
+            };
+            checkVideoSize();
+
+        } catch (error) {
+            updateStatus(`カメラ起動エラー: ${error.message}`, "text-red-400");
+            alert('カメラへのアクセスが拒否されたか、エラーが発生しました。');
+        }
+    }
+
+    async function detectLoop(video, canvas) {
+        if (!video || !canvas || video.paused || video.ended) return;
+
+        if (emotionInterval) clearInterval(emotionInterval);
+
+        const options = new faceapi.TinyFaceDetectorOptions({ 
+            inputSize: 416,
+            scoreThreshold: 0.3
+        });
+
+        const ctx = canvas.getContext('2d');
+        faceapi.matchDimensions(canvas, { width: video.videoWidth, height: video.videoHeight });
+
+        updateStatus("AI解析スタート！", "text-green-400");
+        
+        let frameCount = 0;
+
+        emotionInterval = setInterval(async () => {
+            if (video.paused || video.ended || !emotionVideoStream) return;
+
+            try {
+                const detections = await faceapi
+                    .detectAllFaces(video, options)
+                    .withFaceExpressions();
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (detections && detections.length > 0) {
+                    const resizedDetections = faceapi.resizeResults(detections, { width: canvas.width, height: canvas.height });
+
+                    faceapi.draw.drawDetections(canvas, resizedDetections);
+
+                    const expressions = resizedDetections[0].expressions;
+                    const sorted = Object.entries(expressions).sort(([,a],[,b]) => b - a);
+                    const [maxEmotion, maxScore] = sorted[0];
+                    const label = targetEmotions[maxEmotion] || maxEmotion;
+                    const scorePercent = Math.round(maxScore * 100);
+
+                    const box = resizedDetections[0].detection.box;
+                    const textX = box.x + box.width / 2;
+                    const textY = box.y - 10;
+
+                    ctx.font = 'bold 24px "Noto Sans JP", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = '#f97316'; // Orange
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 4;
+                    ctx.strokeText(`${label} (${scorePercent}%)`, textX, textY);
+                    ctx.fillText(`${label} (${scorePercent}%)`, textX, textY);
+
+                    const resultEl = document.getElementById('emotion-result');
+                    if (resultEl) {
+                        resultEl.innerHTML = `
+                            <div class="text-center">
+                                <p class="text-3xl font-bold text-green-400 mb-1">${label}</p>
+                                <p class="text-sm text-gray-300">確信度: ${scorePercent}%</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    frameCount++;
+                    if (frameCount % 10 === 0) {
+                        const resultEl = document.getElementById('emotion-result');
+                        if (resultEl) resultEl.innerHTML = `<p class="text-yellow-400 font-bold">顔を探しています...</p>`;
+                    }
+                }
+
+            } catch (error) {
+                console.error('Detection error:', error);
+            }
+        }, 200);
+    }
+
+    function captureEmotionSnapshot() {
+        const el = document.getElementById('emotion-result');
+        if (el) {
+            const text = el.innerText.replace(/\n/g, ' ');
+            alert(`現在の状態: ${text}`);
+        }
+    }
+
+    function closeEmotionModal() {
+        const modal = document.getElementById('emotion-modal');
+        const video = document.getElementById('emotion-video');
+        const canvas = document.getElementById('emotion-canvas');
+        
+        modal.classList.add('hidden');
+        
+        if (emotionVideoStream) {
+            emotionVideoStream.getTracks().forEach(track => track.stop());
+            emotionVideoStream = null;
+        }
+        
+        if (emotionInterval) {
+            clearInterval(emotionInterval);
+            emotionInterval = null;
+        }
+        
+        if (video) {
+            video.srcObject = null;
+            video.pause();
+        }
+        
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        updateStatus("カメラを起動してください", "text-gray-300");
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const emotionBtn = document.getElementById('emotion-btn');
+        if (emotionBtn) emotionBtn.addEventListener('click', startEmotionCamera);
+
+        const captureBtn = document.getElementById('capture-emotion-btn');
+        if (captureBtn) captureBtn.addEventListener('click', captureEmotionSnapshot);
+
+        const closeBtn = document.getElementById('close-emotion-modal');
+        if (closeBtn) closeBtn.addEventListener('click', closeEmotionModal);
+
+        const modal = document.getElementById('emotion-modal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeEmotionModal();
+            });
+        }
+    });
+
+    // ---------------------------------------------------------
+    // チャットボット機能
+    // ---------------------------------------------------------
+    const CHAT_STORAGE_KEY = 'moodle-app-chat-history';
+    let chatHistory = [];
+    let mlcEngine = null;
+    let isModelLoading = false;
+    const SELECTED_MODEL = "Llama-3.2-1B-Instruct-q4f32_1-MLC";
+
+    function initializeWebLLMChatbot() {
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-chat-btn');
+        const resetBtn = document.getElementById('reset-chat-btn');
+
+        const savedHistory = localStorage.getItem(CHAT_STORAGE_KEY);
+        if (savedHistory) {
+            try {
+                chatHistory = JSON.parse(savedHistory);
+            } catch(e) { console.error(e); }
+        }
+
+        renderChat();
+
+        if(sendBtn) sendBtn.addEventListener('click', handleWebLLMChatSend);
+        if(resetBtn) resetBtn.addEventListener('click', resetChat);
+        if(chatInput) {
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleWebLLMChatSend();
+            });
+        }
+    }
+
+    function renderChat() {
+        const container = document.getElementById('chat-container');
+        if (!container) return;
+
+        if (chatHistory.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-gray-400 text-sm mt-20">
+                    <p class="mb-2 text-3xl">🤖</p>
+                    <p>学習の悩みや進捗を話しかけてください。<br>あなたのブラウザ内で動くAIが応援します！</p>
+                    <p class="text-xs text-slate-500 mt-2">※初回のみAIモデルのダウンロードが発生します</p>
+                </div>`;
+        } else {
+            container.innerHTML = '';
+            chatHistory.forEach(msg => {
+                const div = document.createElement('div');
+                const isBot = msg.role === 'assistant';
+                div.className = `flex mb-3 ${isBot ? 'justify-start' : 'justify-end'}`;
+                
+                const contentClass = isBot 
+                    ? 'bg-slate-700 text-gray-100 rounded-2xl rounded-tl-none border border-slate-600'
+                    : 'bg-blue-600 text-white rounded-2xl rounded-tr-none shadow-lg shadow-blue-600/20';
+
+                let htmlContent = msg.content;
+                if (typeof marked !== 'undefined' && isBot) {
+                    htmlContent = marked.parse(msg.content);
+                } else {
+                    htmlContent = msg.content.replace(/\n/g, '<br>');
+                }
+
+                div.innerHTML = `
+                    <div class="max-w-[85%] px-4 py-3 ${contentClass} text-sm">
+                        ${htmlContent}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    async function getMLCEngine() {
+        if (mlcEngine) return mlcEngine;
+
+        const statusDiv = document.getElementById('llm-status');
+        const progressBar = document.getElementById('llm-progress-bar');
+        const statusText = document.getElementById('llm-status-text');
+        if(statusDiv) statusDiv.classList.remove('hidden');
+        isModelLoading = true;
+
+        try {
+            const { CreateMLCEngine } = await import('https://esm.run/@mlc-ai/web-llm');
+
+            const initProgressCallback = (report) => {
+                console.log('Loading:', report.text);
+                if(statusText) statusText.innerText = report.text;
+                if (report.progress && progressBar) {
+                    progressBar.style.width = `${report.progress * 100}%`;
+                }
+            };
+
+            mlcEngine = await CreateMLCEngine(
+                SELECTED_MODEL,
+                { initProgressCallback: initProgressCallback }
+            );
+
+            if(statusDiv) statusDiv.classList.add('hidden');
+            isModelLoading = false;
+            return mlcEngine;
+
+        } catch (error) {
+            console.error("WebLLM Load Error:", error);
+            alert("AIモデルの読み込みに失敗しました。WebGPU対応ブラウザをご利用ください。");
+            if(statusDiv) statusDiv.classList.add('hidden');
+            isModelLoading = false;
+            return null;
+        }
+    }
+
+    async function handleWebLLMChatSend() {
+        const inputEl = document.getElementById('chat-input');
+        const text = inputEl.value.trim();
+        if (!text || isModelLoading) return;
+
+        chatHistory.push({ role: 'user', content: text });
+        inputEl.value = '';
+        renderChat();
+        saveChatHistory();
+
+        const container = document.getElementById('chat-container');
+        
+        let loadingDiv = document.createElement('div');
+        loadingDiv.className = 'flex mb-3 justify-start';
+        loadingDiv.id = 'chat-loading-bubble';
+        loadingDiv.innerHTML = `<div class="bg-slate-700 text-cyan-400 px-4 py-3 rounded-2xl rounded-tl-none text-xs flex items-center gap-2"><span class="animate-pulse">●</span> AIが考えています...</div>`;
+        container.appendChild(loadingDiv);
+        container.scrollTop = container.scrollHeight;
+
+        const engine = await getMLCEngine();
+        if (!engine) {
+            document.getElementById('chat-loading-bubble')?.remove();
+            return;
+        }
+
+        const systemPrompt = "あなたは親切な学習メンターです。高校生のユーザーの学習を具体的に励まし、ポジティブに応答してください。日本語で答えてください。";
+        
+        const messages = [
+            { role: "system", content: systemPrompt },
+            ...chatHistory.slice(-5)
+        ];
+
+        try {
+            const reply = await engine.chat.completions.create({
+                messages: messages,
+                temperature: 0.7,
+                max_tokens: 256, 
+            });
+
+            const botResponse = reply.choices[0].message.content;
+
+            document.getElementById('chat-loading-bubble')?.remove();
+
+            chatHistory.push({ role: 'assistant', content: botResponse });
+            renderChat();
+            saveChatHistory();
+
+        } catch (err) {
+            console.error(err);
+            document.getElementById('chat-loading-bubble')?.remove();
+            alert("エラーが発生しました。");
+        }
+    }
+
+    function resetChat() {
+        if(confirm("会話履歴をリセットして最初から始めますか？")) {
+            chatHistory = [];
+            saveChatHistory();
+            if(mlcEngine) {
+                mlcEngine.resetChat();
+            }
+            renderChat();
+        }
+    }
+
+    function saveChatHistory() {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatHistory));
+    }
+    </script>
+</body>
+</html>
