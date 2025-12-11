@@ -567,6 +567,273 @@
             </div>
         </div>
 
+        <!-- AHP（階層分析法）：意思決定サポート -->
+        <div class="st-card border-t-4 border-t-emerald-500 animate-fade-in" style="animation-delay: 0.6s;">
+            <div class="mb-6">
+                <h3 class="text-xl font-bold text-emerald-400 flex items-center mb-2">
+                    <span class="bg-emerald-500/20 text-emerald-400 p-2 rounded-lg mr-3 text-xl">⚖️</span>
+                    意思決定サポート：AHP（階層分析法）
+                </h3>
+                <div class="ml-12 text-sm text-gray-300 space-y-2 bg-slate-800/50 p-4 rounded-lg">
+                    <p>AHPはAnalytic Hierarchy Processの略で、階層分析法、階層化意思決定法とも呼ばれます。
+                        AHPは、問題解決のための数学的な手法を研究するオペレーションズ・リサーチの分野から提案され、
+                        政府部門や軍事領域、産業分野などで広く用いられる意思決定のための手法です。</p>
+                    <p>意思決定の全体像を、目的・評価基準・代替案の階層構造であらわし、
+                        人間の主観的判断を一対比較法によって重み付けした結果から合理的な判断を行うものです。</p>
+                    <br>
+                    <p>ご自身の選択する内容に書き換えてみてください。</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-8">
+                <!-- Step 1: 定義 -->
+                <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-700">
+                    <h4 class="text-emerald-400 font-bold mb-4 border-b border-slate-700 pb-2">Step 1: 構造の定義</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-400 mb-1">目的 (Goal)</label>
+                            <input type="text" id="ahp-goal" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none" value="どの大学に進学するか？">
+                        </div>
+                        <div>
+                            <!-- Spacer -->
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-400 mb-1">評価基準 (Criteria)</label>
+                            <div class="space-y-2">
+                                <input type="text" id="ahp-criteria-1" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none" value="専攻分野">
+                                <input type="text" id="ahp-criteria-2" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none" value="学費">
+                                <input type="text" id="ahp-criteria-3" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none" value="地域">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-400 mb-1">代替案 (Alternatives)</label>
+                            <div class="space-y-2">
+                                <input type="text" id="ahp-alt-1" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none" value="A大学">
+                                <input type="text" id="ahp-alt-2" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none" value="B大学">
+                                <input type="text" id="ahp-alt-3" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none" value="C大学">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: 評価基準の一対比較 -->
+                <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-700">
+                    <h4 class="text-emerald-400 font-bold mb-4 border-b border-slate-700 pb-2">Step 2: 評価基準の一対比較（どちらを重視しますか？）</h4>
+                    <div id="ahp-criteria-comparison-container" class="space-y-6">
+                        <!-- JSで動的生成または下記固定 -->
+                        <!-- Row 1: Criteria 1 vs 2 -->
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-2 p-2 bg-slate-800/50 rounded">
+                            <div class="w-full md:w-1/4 text-center md:text-right font-bold text-cyan-300 ahp-label-c1">専攻分野</div>
+                            <div class="flex items-center gap-2">
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-1-2" value="5" class="accent-emerald-500"><span class="text-[10px] text-gray-400">重要</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-1-2" value="3" class="accent-emerald-500"><span class="text-[10px] text-gray-400">やや重要</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-1-2" value="1" checked class="accent-emerald-500"><span class="text-[10px] text-gray-400">同じ</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-1-2" value="0.333" class="accent-emerald-500"><span class="text-[10px] text-gray-400">やや重要</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-1-2" value="0.2" class="accent-emerald-500"><span class="text-[10px] text-gray-400">重要</span></label>
+                            </div>
+                            <div class="w-full md:w-1/4 text-center md:text-left font-bold text-purple-300 ahp-label-c2">学費</div>
+                        </div>
+                        <!-- Row 2: Criteria 1 vs 3 -->
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-2 p-2 bg-slate-800/50 rounded">
+                            <div class="w-full md:w-1/4 text-center md:text-right font-bold text-cyan-300 ahp-label-c1">専攻分野</div>
+                            <div class="flex items-center gap-2">
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-1-3" value="5" class="accent-emerald-500"><span class="text-[10px] text-gray-400">重要</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-1-3" value="3" class="accent-emerald-500"><span class="text-[10px] text-gray-400">やや重要</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-1-3" value="1" checked class="accent-emerald-500"><span class="text-[10px] text-gray-400">同じ</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-1-3" value="0.333" class="accent-emerald-500"><span class="text-[10px] text-gray-400">やや重要</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-1-3" value="0.2" class="accent-emerald-500"><span class="text-[10px] text-gray-400">重要</span></label>
+                            </div>
+                            <div class="w-full md:w-1/4 text-center md:text-left font-bold text-orange-300 ahp-label-c3">地域</div>
+                        </div>
+                        <!-- Row 3: Criteria 2 vs 3 -->
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-2 p-2 bg-slate-800/50 rounded">
+                            <div class="w-full md:w-1/4 text-center md:text-right font-bold text-purple-300 ahp-label-c2">学費</div>
+                            <div class="flex items-center gap-2">
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-2-3" value="5" class="accent-emerald-500"><span class="text-[10px] text-gray-400">重要</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-2-3" value="3" class="accent-emerald-500"><span class="text-[10px] text-gray-400">やや重要</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-2-3" value="1" checked class="accent-emerald-500"><span class="text-[10px] text-gray-400">同じ</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-2-3" value="0.333" class="accent-emerald-500"><span class="text-[10px] text-gray-400">やや重要</span></label>
+                                <label class="flex flex-col items-center cursor-pointer"><input type="radio" name="ahp-pair-c-2-3" value="0.2" class="accent-emerald-500"><span class="text-[10px] text-gray-400">重要</span></label>
+                            </div>
+                            <div class="w-full md:w-1/4 text-center md:text-left font-bold text-orange-300 ahp-label-c3">地域</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: 代替案の一対比較 -->
+                <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-700">
+                    <h4 class="text-emerald-400 font-bold mb-4 border-b border-slate-700 pb-2">Step 3: 代替案の一対比較（どちらが良いですか？）</h4>
+                    
+                    <div id="ahp-alt-comparisons">
+                        <!-- テンプレート関数で生成するが、初期表示用に3セット用意 -->
+                        <!-- Criteria 1 -->
+                        <div class="mb-6">
+                            <h5 class="text-cyan-400 font-bold mb-2 text-sm">【<span class="ahp-label-c1">専攻分野</span>】について</h5>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center justify-between bg-slate-800/30 p-2 rounded">
+                                    <span class="ahp-label-a1 w-1/4 text-right">A大学</span>
+                                    <div class="flex gap-2">
+                                        <input type="radio" name="ahp-pair-a1-1-2" value="5"> <input type="radio" name="ahp-pair-a1-1-2" value="3"> <input type="radio" name="ahp-pair-a1-1-2" value="1" checked> <input type="radio" name="ahp-pair-a1-1-2" value="0.333"> <input type="radio" name="ahp-pair-a1-1-2" value="0.2">
+                                    </div>
+                                    <span class="ahp-label-a2 w-1/4 text-left">B大学</span>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-800/30 p-2 rounded">
+                                    <span class="ahp-label-a1 w-1/4 text-right">A大学</span>
+                                    <div class="flex gap-2">
+                                        <input type="radio" name="ahp-pair-a1-1-3" value="5"> <input type="radio" name="ahp-pair-a1-1-3" value="3"> <input type="radio" name="ahp-pair-a1-1-3" value="1" checked> <input type="radio" name="ahp-pair-a1-1-3" value="0.333"> <input type="radio" name="ahp-pair-a1-1-3" value="0.2">
+                                    </div>
+                                    <span class="ahp-label-a3 w-1/4 text-left">C大学</span>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-800/30 p-2 rounded">
+                                    <span class="ahp-label-a2 w-1/4 text-right">B大学</span>
+                                    <div class="flex gap-2">
+                                        <input type="radio" name="ahp-pair-a1-2-3" value="5"> <input type="radio" name="ahp-pair-a1-2-3" value="3"> <input type="radio" name="ahp-pair-a1-2-3" value="1" checked> <input type="radio" name="ahp-pair-a1-2-3" value="0.333"> <input type="radio" name="ahp-pair-a1-2-3" value="0.2">
+                                    </div>
+                                    <span class="ahp-label-a3 w-1/4 text-left">C大学</span>
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Criteria 2 -->
+                         <div class="mb-6">
+                            <h5 class="text-purple-400 font-bold mb-2 text-sm">【<span class="ahp-label-c2">学費</span>】について</h5>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center justify-between bg-slate-800/30 p-2 rounded">
+                                    <span class="ahp-label-a1 w-1/4 text-right">A大学</span>
+                                    <div class="flex gap-2">
+                                        <input type="radio" name="ahp-pair-a2-1-2" value="5"> <input type="radio" name="ahp-pair-a2-1-2" value="3"> <input type="radio" name="ahp-pair-a2-1-2" value="1" checked> <input type="radio" name="ahp-pair-a2-1-2" value="0.333"> <input type="radio" name="ahp-pair-a2-1-2" value="0.2">
+                                    </div>
+                                    <span class="ahp-label-a2 w-1/4 text-left">B大学</span>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-800/30 p-2 rounded">
+                                    <span class="ahp-label-a1 w-1/4 text-right">A大学</span>
+                                    <div class="flex gap-2">
+                                        <input type="radio" name="ahp-pair-a2-1-3" value="5"> <input type="radio" name="ahp-pair-a2-1-3" value="3"> <input type="radio" name="ahp-pair-a2-1-3" value="1" checked> <input type="radio" name="ahp-pair-a2-1-3" value="0.333"> <input type="radio" name="ahp-pair-a2-1-3" value="0.2">
+                                    </div>
+                                    <span class="ahp-label-a3 w-1/4 text-left">C大学</span>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-800/30 p-2 rounded">
+                                    <span class="ahp-label-a2 w-1/4 text-right">B大学</span>
+                                    <div class="flex gap-2">
+                                        <input type="radio" name="ahp-pair-a2-2-3" value="5"> <input type="radio" name="ahp-pair-a2-2-3" value="3"> <input type="radio" name="ahp-pair-a2-2-3" value="1" checked> <input type="radio" name="ahp-pair-a2-2-3" value="0.333"> <input type="radio" name="ahp-pair-a2-2-3" value="0.2">
+                                    </div>
+                                    <span class="ahp-label-a3 w-1/4 text-left">C大学</span>
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Criteria 3 -->
+                         <div class="mb-6">
+                            <h5 class="text-orange-400 font-bold mb-2 text-sm">【<span class="ahp-label-c3">地域</span>】について</h5>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center justify-between bg-slate-800/30 p-2 rounded">
+                                    <span class="ahp-label-a1 w-1/4 text-right">A大学</span>
+                                    <div class="flex gap-2">
+                                        <input type="radio" name="ahp-pair-a3-1-2" value="5"> <input type="radio" name="ahp-pair-a3-1-2" value="3"> <input type="radio" name="ahp-pair-a3-1-2" value="1" checked> <input type="radio" name="ahp-pair-a3-1-2" value="0.333"> <input type="radio" name="ahp-pair-a3-1-2" value="0.2">
+                                    </div>
+                                    <span class="ahp-label-a2 w-1/4 text-left">B大学</span>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-800/30 p-2 rounded">
+                                    <span class="ahp-label-a1 w-1/4 text-right">A大学</span>
+                                    <div class="flex gap-2">
+                                        <input type="radio" name="ahp-pair-a3-1-3" value="5"> <input type="radio" name="ahp-pair-a3-1-3" value="3"> <input type="radio" name="ahp-pair-a3-1-3" value="1" checked> <input type="radio" name="ahp-pair-a3-1-3" value="0.333"> <input type="radio" name="ahp-pair-a3-1-3" value="0.2">
+                                    </div>
+                                    <span class="ahp-label-a3 w-1/4 text-left">C大学</span>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-800/30 p-2 rounded">
+                                    <span class="ahp-label-a2 w-1/4 text-right">B大学</span>
+                                    <div class="flex gap-2">
+                                        <input type="radio" name="ahp-pair-a3-2-3" value="5"> <input type="radio" name="ahp-pair-a3-2-3" value="3"> <input type="radio" name="ahp-pair-a3-2-3" value="1" checked> <input type="radio" name="ahp-pair-a3-2-3" value="0.333"> <input type="radio" name="ahp-pair-a3-2-3" value="0.2">
+                                    </div>
+                                    <span class="ahp-label-a3 w-1/4 text-left">C大学</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="ahp-calc-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-500/30 transition-all transform active:scale-95">
+                    計算・診断開始
+                </button>
+
+                <!-- 結果エリア -->
+                <div id="ahp-result-area" class="hidden space-y-4">
+                    <div class="bg-slate-900/80 p-6 rounded-xl border border-emerald-500/50">
+                        <h4 class="text-xl font-bold text-white mb-4 text-center">🏆 総合評価結果</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6">
+                            <div class="bg-slate-800 p-4 rounded-lg">
+                                <p class="text-xs text-gray-400 ahp-label-a1">A大学</p>
+                                <p id="ahp-score-1" class="text-2xl font-bold text-white">0.000</p>
+                            </div>
+                            <div class="bg-slate-800 p-4 rounded-lg">
+                                <p class="text-xs text-gray-400 ahp-label-a2">B大学</p>
+                                <p id="ahp-score-2" class="text-2xl font-bold text-white">0.000</p>
+                            </div>
+                            <div class="bg-slate-800 p-4 rounded-lg">
+                                <p class="text-xs text-gray-400 ahp-label-a3">C大学</p>
+                                <p id="ahp-score-3" class="text-2xl font-bold text-white">0.000</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5 class="text-sm font-bold text-emerald-400 mb-2">📊 詳細ウェイト（重要度）</h5>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left text-gray-400">
+                                    <thead class="text-xs uppercase bg-slate-700 text-gray-200">
+                                        <tr>
+                                            <th class="px-2 py-2">項目</th>
+                                            <th class="px-2 py-2 ahp-label-c1">専攻分野</th>
+                                            <th class="px-2 py-2 ahp-label-c2">学費</th>
+                                            <th class="px-2 py-2 ahp-label-c3">地域</th>
+                                            <th class="px-2 py-2 text-white font-bold">総合スコア</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-700">
+                                        <tr>
+                                            <td class="px-2 py-2 font-bold text-emerald-300">基準ウェイト</td>
+                                            <td id="ahp-w-c1" class="px-2 py-2">-</td>
+                                            <td id="ahp-w-c2" class="px-2 py-2">-</td>
+                                            <td id="ahp-w-c3" class="px-2 py-2">-</td>
+                                            <td class="px-2 py-2 bg-slate-800">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-2 py-2 ahp-label-a1">A大学</td>
+                                            <td id="ahp-w-a1-c1" class="px-2 py-2">-</td>
+                                            <td id="ahp-w-a1-c2" class="px-2 py-2">-</td>
+                                            <td id="ahp-w-a1-c3" class="px-2 py-2">-</td>
+                                            <td id="ahp-total-a1" class="px-2 py-2 font-bold text-white bg-slate-800">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-2 py-2 ahp-label-a2">B大学</td>
+                                            <td id="ahp-w-a2-c1" class="px-2 py-2">-</td>
+                                            <td id="ahp-w-a2-c2" class="px-2 py-2">-</td>
+                                            <td id="ahp-w-a2-c3" class="px-2 py-2">-</td>
+                                            <td id="ahp-total-a2" class="px-2 py-2 font-bold text-white bg-slate-800">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-2 py-2 ahp-label-a3">C大学</td>
+                                            <td id="ahp-w-a3-c1" class="px-2 py-2">-</td>
+                                            <td id="ahp-w-a3-c2" class="px-2 py-2">-</td>
+                                            <td id="ahp-w-a3-c3" class="px-2 py-2">-</td>
+                                            <td id="ahp-total-a3" class="px-2 py-2 font-bold text-white bg-slate-800">-</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="ahp-consistency-msg" class="p-3 bg-red-900/50 border border-red-500 rounded text-red-200 text-sm hidden">
+                            ⚠️ 整合度(CI)が0.15以上です。判断に矛盾がある可能性があります。比較をやり直すことをお勧めします。
+                        </div>
+
+                        <button id="ahp-save-btn" class="mt-4 w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded-lg border border-slate-500 transition-colors flex items-center justify-center gap-2">
+                            <span>💾</span> 結果をテキストファイルで保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- フッター -->
@@ -754,6 +1021,9 @@
         
         // 11. フェルミ推定の初期化
         initializeFermi();
+
+        // 12. AHPの初期化
+        initializeAHP();
     });
 
     // ---------------------------------------------------------
@@ -1561,6 +1831,239 @@
                 }
             }
         });
+    }
+
+    // ---------------------------------------------------------
+    // AHP（階層分析法）機能
+    // ---------------------------------------------------------
+    function initializeAHP() {
+        const ids = ['ahp-criteria-1', 'ahp-criteria-2', 'ahp-criteria-3', 'ahp-alt-1', 'ahp-alt-2', 'ahp-alt-3'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.addEventListener('input', updateAHPLabels);
+        });
+
+        const calcBtn = document.getElementById('ahp-calc-btn');
+        if(calcBtn) calcBtn.addEventListener('click', calculateAHP);
+
+        const saveBtn = document.getElementById('ahp-save-btn');
+        if(saveBtn) saveBtn.addEventListener('click', saveAHPResult);
+
+        // 初回ラベル更新
+        updateAHPLabels();
+    }
+
+    function updateAHPLabels() {
+        const c1 = document.getElementById('ahp-criteria-1').value;
+        const c2 = document.getElementById('ahp-criteria-2').value;
+        const c3 = document.getElementById('ahp-criteria-3').value;
+        const a1 = document.getElementById('ahp-alt-1').value;
+        const a2 = document.getElementById('ahp-alt-2').value;
+        const a3 = document.getElementById('ahp-alt-3').value;
+
+        // クラス名で一括更新
+        document.querySelectorAll('.ahp-label-c1').forEach(el => el.textContent = c1);
+        document.querySelectorAll('.ahp-label-c2').forEach(el => el.textContent = c2);
+        document.querySelectorAll('.ahp-label-c3').forEach(el => el.textContent = c3);
+        document.querySelectorAll('.ahp-label-a1').forEach(el => el.textContent = a1);
+        document.querySelectorAll('.ahp-label-a2').forEach(el => el.textContent = a2);
+        document.querySelectorAll('.ahp-label-a3').forEach(el => el.textContent = a3);
+    }
+
+    // 3x3行列の幾何平均法によるウェイト計算
+    function calcWeightsFromMatrix3x3(val12, val13, val23) {
+        // 対角成分は1、逆数は 1/v
+        // Matrix:
+        // [ 1      v12     v13 ]
+        // [ 1/v12  1       v23 ]
+        // [ 1/v13  1/v23   1   ]
+        
+        const m = [
+            [1, val12, val13],
+            [1/val12, 1, val23],
+            [1/val13, 1/val23, 1]
+        ];
+
+        // 幾何平均
+        const gm = [0, 0, 0];
+        let gmSum = 0;
+        for(let i=0; i<3; i++) {
+            gm[i] = Math.pow(m[i][0] * m[i][1] * m[i][2], 1/3);
+            gmSum += gm[i];
+        }
+
+        // 正規化(ウェイト)
+        const w = gm.map(v => v / gmSum);
+
+        // 整合度(CI)の簡易計算 (Lambda max 近似)
+        // λmax ≈ Σ(Column Sum * Weight)
+        let lambdaMax = 0;
+        for(let j=0; j<3; j++) {
+            let colSum = m[0][j] + m[1][j] + m[2][j];
+            lambdaMax += colSum * w[j];
+        }
+        
+        const ci = (lambdaMax - 3) / 2; // n=3 なので (λ-n)/(n-1) => (λ-3)/2
+
+        return { weights: w, ci: ci };
+    }
+
+    function getRadioValue(name) {
+        const els = document.getElementsByName(name);
+        for(let el of els) {
+            if(el.checked) return parseFloat(el.value);
+        }
+        return 1; // Default
+    }
+
+    function calculateAHP() {
+        // Step 1: Criteria comparison
+        const c12 = getRadioValue('ahp-pair-c-1-2');
+        const c13 = getRadioValue('ahp-pair-c-1-3');
+        const c23 = getRadioValue('ahp-pair-c-2-3');
+        const resCriteria = calcWeightsFromMatrix3x3(c12, c13, c23);
+
+        // Step 2: Alternatives comparison for Criteria 1
+        const a1_12 = getRadioValue('ahp-pair-a1-1-2');
+        const a1_13 = getRadioValue('ahp-pair-a1-1-3');
+        const a1_23 = getRadioValue('ahp-pair-a1-2-3');
+        const resAlt1 = calcWeightsFromMatrix3x3(a1_12, a1_13, a1_23);
+
+        // Step 3: Alternatives comparison for Criteria 2
+        const a2_12 = getRadioValue('ahp-pair-a2-1-2');
+        const a2_13 = getRadioValue('ahp-pair-a2-1-3');
+        const a2_23 = getRadioValue('ahp-pair-a2-2-3');
+        const resAlt2 = calcWeightsFromMatrix3x3(a2_12, a2_13, a2_23);
+
+        // Step 4: Alternatives comparison for Criteria 3
+        const a3_12 = getRadioValue('ahp-pair-a3-1-2');
+        const a3_13 = getRadioValue('ahp-pair-a3-1-3');
+        const a3_23 = getRadioValue('ahp-pair-a3-2-3');
+        const resAlt3 = calcWeightsFromMatrix3x3(a3_12, a3_13, a3_23);
+
+        // 総合スコア計算
+        // Score(A) = W(C1)*W(A|C1) + W(C2)*W(A|C2) + W(C3)*W(A|C3)
+        const scores = [0, 0, 0];
+        for(let i=0; i<3; i++) {
+            scores[i] = resCriteria.weights[0] * resAlt1.weights[i] +
+                        resCriteria.weights[1] * resAlt2.weights[i] +
+                        resCriteria.weights[2] * resAlt3.weights[i];
+        }
+
+        // 表示更新
+        document.getElementById('ahp-result-area').classList.remove('hidden');
+
+        // スコア表示
+        document.getElementById('ahp-score-1').textContent = scores[0].toFixed(3);
+        document.getElementById('ahp-score-2').textContent = scores[1].toFixed(3);
+        document.getElementById('ahp-score-3').textContent = scores[2].toFixed(3);
+
+        // テーブル更新
+        document.getElementById('ahp-w-c1').textContent = resCriteria.weights[0].toFixed(3);
+        document.getElementById('ahp-w-c2').textContent = resCriteria.weights[1].toFixed(3);
+        document.getElementById('ahp-w-c3').textContent = resCriteria.weights[2].toFixed(3);
+
+        document.getElementById('ahp-w-a1-c1').textContent = resAlt1.weights[0].toFixed(3);
+        document.getElementById('ahp-w-a1-c2').textContent = resAlt2.weights[0].toFixed(3);
+        document.getElementById('ahp-w-a1-c3').textContent = resAlt3.weights[0].toFixed(3);
+        document.getElementById('ahp-total-a1').textContent = scores[0].toFixed(3);
+
+        document.getElementById('ahp-w-a2-c1').textContent = resAlt1.weights[1].toFixed(3);
+        document.getElementById('ahp-w-a2-c2').textContent = resAlt2.weights[1].toFixed(3);
+        document.getElementById('ahp-w-a2-c3').textContent = resAlt3.weights[1].toFixed(3);
+        document.getElementById('ahp-total-a2').textContent = scores[1].toFixed(3);
+
+        document.getElementById('ahp-w-a3-c1').textContent = resAlt1.weights[2].toFixed(3);
+        document.getElementById('ahp-w-a3-c2').textContent = resAlt2.weights[2].toFixed(3);
+        document.getElementById('ahp-w-a3-c3').textContent = resAlt3.weights[2].toFixed(3);
+        document.getElementById('ahp-total-a3').textContent = scores[2].toFixed(3);
+
+        // 整合度チェック (CI >= 0.15 なら警告)
+        const maxCI = Math.max(resCriteria.ci, resAlt1.ci, resAlt2.ci, resAlt3.ci);
+        const msgEl = document.getElementById('ahp-consistency-msg');
+        if (maxCI >= 0.15) {
+            msgEl.classList.remove('hidden');
+            msgEl.innerHTML = `⚠️ 整合度(CI)が高い箇所があります(Max: ${maxCI.toFixed(3)})。特に「${maxCI === resCriteria.ci ? '評価基準' : '代替案'}」の比較で矛盾が生じている可能性があります。`;
+        } else {
+            msgEl.classList.add('hidden');
+        }
+
+        // 保存用にデータをDOM要素に一時保存
+        document.getElementById('ahp-result-area').dataset.lastResult = JSON.stringify({
+            criteria: resCriteria,
+            alt1: resAlt1,
+            alt2: resAlt2,
+            alt3: resAlt3,
+            scores: scores,
+            ci_max: maxCI
+        });
+    }
+
+    function saveAHPResult() {
+        const goal = document.getElementById('ahp-goal').value;
+        const cNames = [
+            document.getElementById('ahp-criteria-1').value,
+            document.getElementById('ahp-criteria-2').value,
+            document.getElementById('ahp-criteria-3').value
+        ];
+        const aNames = [
+            document.getElementById('ahp-alt-1').value,
+            document.getElementById('ahp-alt-2').value,
+            document.getElementById('ahp-alt-3').value
+        ];
+
+        const resultDataStr = document.getElementById('ahp-result-area').dataset.lastResult;
+        if(!resultDataStr) {
+            alert("計算を行ってから保存してください。");
+            return;
+        }
+        const res = JSON.parse(resultDataStr);
+
+        let text = "=== AHP（階層分析法） 意思決定レポート ===\n\n";
+        text += `[目的] ${goal}\n`;
+        text += `[日時] ${new Date().toLocaleString('ja-JP')}\n\n`;
+
+        text += "--- 1. 総合評価結果 ---\n";
+        aNames.forEach((name, i) => {
+            text += `${name} : ${res.scores[i].toFixed(4)}\n`;
+        });
+        
+        // 勝者判定
+        let maxScore = -1;
+        let winnerIndex = -1;
+        res.scores.forEach((s, i) => {
+            if(s > maxScore) { maxScore = s; winnerIndex = i; }
+        });
+        text += `\n>> 最も推奨される選択肢: ${aNames[winnerIndex]}\n\n`;
+
+        text += "--- 2. 評価基準の重要度 (ウェイト) ---\n";
+        cNames.forEach((name, i) => {
+            text += `${name} : ${res.criteria.weights[i].toFixed(4)}\n`;
+        });
+        text += `(整合度 CI: ${res.criteria.ci.toFixed(4)})\n\n`;
+
+        text += "--- 3. 代替案の評価詳細 ---\n";
+        text += `[${cNames[0]}] 視点:\n`;
+        aNames.forEach((name, i) => text += `  ${name}: ${res.alt1.weights[i].toFixed(4)}\n`);
+        text += `  (CI: ${res.alt1.ci.toFixed(4)})\n\n`;
+
+        text += `[${cNames[1]}] 視点:\n`;
+        aNames.forEach((name, i) => text += `  ${name}: ${res.alt2.weights[i].toFixed(4)}\n`);
+        text += `  (CI: ${res.alt2.ci.toFixed(4)})\n\n`;
+
+        text += `[${cNames[2]}] 視点:\n`;
+        aNames.forEach((name, i) => text += `  ${name}: ${res.alt3.weights[i].toFixed(4)}\n`);
+        text += `  (CI: ${res.alt3.ci.toFixed(4)})\n`;
+
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ahp_decision_${new Date().toISOString().slice(0,10)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     // ---------------------------------------------------------
