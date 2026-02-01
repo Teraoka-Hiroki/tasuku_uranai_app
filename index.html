@@ -149,6 +149,12 @@
             background-color: #64748b;
         }
 
+        /* レコメンド検索ハイライト */
+        .recommendation-id-highlight {
+            color: #f97316; /* orange-500 */
+            font-weight: 900;
+        }
+
         /* ドラッグ&ドロップ */
         #drop-zone {
             display: none;
@@ -312,8 +318,12 @@
             </div>
 
             <!-- 右カラム：おすすめリスト -->
-            <div class="xl:col-span-5">
+            <div class="xl:col-span-5 xl:flex xl:flex-col">
                 <div class="st-card h-full flex flex-col border-t-4 border-t-green-500 max-h-[850px]">
+                    <div class="mb-3">
+                        <input id="recommendation-search" type="text" placeholder="🔎 検索キーワードを入力..." class="w-full bg-slate-800 text-gray-100 border border-slate-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-cyan-500" />
+                        <p class="text-xs text-gray-400 mt-2">一致した場合、コースNoがハイライトされます</p>
+                    </div>
                     <div class="mb-4 flex items-center justify-between">
                         <div>
                             <h3 class="text-xl font-bold text-gray-100 flex items-center">
@@ -434,43 +444,6 @@
             </div>
         </div>
 
-        <!-- 集中タイマー -->
-        <div class="st-card bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 animate-fade-in" style="animation-delay: 0.4s;">
-            <!-- 修正点2: タイマーにコメントを追加 -->
-            <div class="mb-6">
-                <h3 class="text-lg font-bold text-gray-100 flex items-center mb-2">
-                    <span class="bg-indigo-500/20 text-indigo-400 p-2 rounded-lg mr-3 text-xl">⏳</span>
-                    Focus Timer
-                </h3>
-                <p class="text-sm text-gray-400 ml-12">勉強時間を管理しよう！！！</p>
-            </div>
-            
-            <div class="flex flex-col md:flex-row items-center justify-center gap-10">
-                <!-- タイマー表示 -->
-                <div class="relative group">
-                    <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                    <div class="relative w-72 h-36 bg-slate-950 rounded-xl border border-slate-700 flex items-center justify-center shadow-2xl">
-                        <span id="timer-display" class="font-mono-clock text-7xl text-cyan-400 font-bold tracking-widest drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">25:00</span>
-                    </div>
-                </div>
-
-                <!-- コントロール -->
-                <div class="flex flex-col gap-4 w-full md:w-auto">
-                    <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
-                        <button onclick="setTimer(5)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">5 min</button>
-                        <button onclick="setTimer(10)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">10 min</button>
-                        <button onclick="setTimer(15)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">15 min</button>
-                        <button onclick="setTimer(30)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">30 min</button>
-                        <button onclick="setTimer(45)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">45 min</button>
-                        <button onclick="setTimer(60)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">60 min</button>
-                    </div>
-                    <div class="flex gap-4">
-                        <button id="timer-start-btn" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-cyan-500/20 transition-all transform active:scale-95">START</button>
-                        <button id="timer-reset-btn" class="flex-1 bg-slate-700 hover:bg-red-900/80 text-white font-bold py-3 rounded-lg border border-slate-600 hover:border-red-500 transition-all">RESET</button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- フェルミ推定：恋愛方程式 -->
         <div class="st-card border-t-4 border-t-pink-500 animate-fade-in" style="animation-delay: 0.5s;">
@@ -838,6 +811,44 @@
             </div>
         </div>
 
+        <!-- 集中タイマー （AHP直下に移動） -->
+        <div class="st-card bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 animate-fade-in" style="animation-delay: 0.4s;">
+            <!-- 修正点2: タイマーにコメントを追加 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-bold text-gray-100 flex items-center mb-2">
+                    <span class="bg-indigo-500/20 text-indigo-400 p-2 rounded-lg mr-3 text-xl">⏳</span>
+                    Focus Timer
+                </h3>
+                <p class="text-sm text-gray-400 ml-12">勉強時間を管理しよう！！！</p>
+            </div>
+            
+            <div class="flex flex-col md:flex-row items-center justify-center gap-10">
+                <!-- タイマー表示 -->
+                <div class="relative group">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                    <div class="relative w-72 h-36 bg-slate-950 rounded-xl border border-slate-700 flex items-center justify-center shadow-2xl">
+                        <span id="timer-display" class="font-mono-clock text-7xl text-cyan-400 font-bold tracking-widest drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">25:00</span>
+                    </div>
+                </div>
+
+                <!-- コントロール -->
+                <div class="flex flex-col gap-4 w-full md:w-auto">
+                    <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
+                        <button onclick="setTimer(5)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">5 min</button>
+                        <button onclick="setTimer(10)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">10 min</button>
+                        <button onclick="setTimer(15)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">15 min</button>
+                        <button onclick="setTimer(30)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">30 min</button>
+                        <button onclick="setTimer(45)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">45 min</button>
+                        <button onclick="setTimer(60)" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-gray-300 border border-slate-600 transition-colors">60 min</button>
+                    </div>
+                    <div class="flex gap-4">
+                        <button id="timer-start-btn" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-cyan-500/20 transition-all transform active:scale-95">START</button>
+                        <button id="timer-reset-btn" class="flex-1 bg-slate-700 hover:bg-red-900/80 text-white font-bold py-3 rounded-lg border border-slate-600 hover:border-red-500 transition-all">RESET</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- フッター -->
@@ -960,6 +971,7 @@
     // アプリケーションの状態
     // ---------------------------------------------------------
     let courseData = [];
+    let currentDisplayedCourses = [];
     let chartInstance = null;
     let clusterCentroids = {};
     let userPos = { x: 0, y: 0 };
@@ -996,6 +1008,75 @@
         if (fileInput) {
             fileInput.addEventListener('change', handleFileUpload);
         }
+
+        // 検索入力のイベント（おすすめコース）
+        const recSearch = document.getElementById('recommendation-search');
+        if (recSearch) {
+            recSearch.addEventListener('input', () => {
+                updateTable(currentDisplayedCourses);
+            });
+        }
+
+        // 右カラム（おすすめコース）を左カラムの上端に揃え、下端をチャートの下端に揃える（XL以上）
+        function adjustRecommendationSizing() {
+            const pxBreakpoint = 1280; // Tailwind xl
+            const rightWrapper = document.querySelector('[class*="xl:col-span-5"]');
+            if (!rightWrapper) return;
+            const rightCard = rightWrapper.querySelector('.st-card');
+            const leftCol = document.querySelector('[class*="xl:col-span-7"]');
+            if (!leftCol || !rightCard) {
+                if (rightCard) {
+                    rightCard.style.removeProperty('height');
+                    rightCard.style.removeProperty('top');
+                    rightCard.style.removeProperty('position');
+                }
+                return;
+            }
+
+            // XL未満では解除
+            if (window.innerWidth < pxBreakpoint) {
+                rightCard.style.removeProperty('height');
+                rightCard.style.removeProperty('top');
+                rightCard.style.removeProperty('position');
+                return;
+            }
+
+            const leftTopCard = leftCol.querySelector('.st-card');
+            const chartCard = document.getElementById('scatterChart')?.closest('.st-card');
+            if (!leftTopCard || !chartCard) return;
+
+            const leftTop = leftTopCard.getBoundingClientRect().top + window.scrollY;
+            const chartBottom = chartCard.getBoundingClientRect().bottom + window.scrollY;
+
+            const rightTop = rightCard.getBoundingClientRect().top + window.scrollY;
+            const topOffset = leftTop - rightTop;
+            const desiredHeight = Math.max(0, chartBottom - leftTop);
+
+            // 相対位置調整
+            rightCard.style.position = 'relative';
+            rightCard.style.top = `${topOffset}px`;
+            rightCard.style.height = `${desiredHeight}px`;
+        }
+
+        // デバウンスしてリサイズ時に再計算
+        let _recAdjTimeout = null;
+        function scheduleAdjustRec() {
+            if (_recAdjTimeout) clearTimeout(_recAdjTimeout);
+            _recAdjTimeout = setTimeout(() => {
+                adjustRecommendationSizing();
+            }, 120);
+        }
+
+        window.addEventListener('resize', scheduleAdjustRec);
+        window.addEventListener('orientationchange', scheduleAdjustRec);
+
+        // グローバルで呼べるようにしておく
+        window.adjustRecommendationSizing = adjustRecommendationSizing;
+        window.scheduleAdjustRec = scheduleAdjustRec;
+
+        // 初回実行（描画後にも念のため再実行）
+        scheduleAdjustRec();
+        setTimeout(scheduleAdjustRec, 250);
 
         // 3. 学習状況の読み込み
         loadLearnedState();
@@ -1211,9 +1292,13 @@
         const clusterCourses = courseData
             .filter(c => c.cluster === closestCluster)
             .sort((a, b) => a.originalIndex - b.originalIndex);
+        currentDisplayedCourses = clusterCourses.slice(); // 検索用に保持
         updateTable(clusterCourses);
 
         updateChart();
+
+        // レイアウト調整（右カラム高さの再計算）
+        if (window.adjustRecommendationSizing) window.adjustRecommendationSizing();
     }
 
     function updateTable(courses) {
@@ -1237,7 +1322,7 @@
                 : 'bg-slate-700 hover:bg-slate-600 text-gray-400 hover:text-white border border-slate-600';
             
             tr.innerHTML = `
-                <td class="px-4 py-3 font-bold text-center text-gray-500 align-top pt-4">#${course.id}</td>
+                <td class="px-4 py-3 font-bold text-center text-gray-500 align-top pt-4"><span class="recommendation-id">#${course.id}</span></td>
                 <td class="px-4 py-3">
                     <div class="font-bold text-cyan-400 text-sm mb-1">${course.name}</div>
                     <div class="text-xs text-gray-400 leading-relaxed">${course.desc || ''}</div>
@@ -1248,6 +1333,21 @@
                     </button>
                 </td>
             `;
+
+            // 検索キーワードに一致するか判定
+            const searchInput = document.getElementById('recommendation-search');
+            const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            let isMatch = false;
+            if (searchTerm) {
+                const tokens = searchTerm.split(/\s+/).filter(Boolean);
+                const text = `${course.name} ${course.desc || ''}`.toLowerCase();
+                // 全てのキーワードが含まれる場合に一致とする
+                isMatch = tokens.every(t => text.includes(t));
+            }
+            if (isMatch) {
+                const idSpan = tr.querySelector('.recommendation-id');
+                if (idSpan) idSpan.classList.add('recommendation-id-highlight');
+            }
             tbody.appendChild(tr);
         });
     }
